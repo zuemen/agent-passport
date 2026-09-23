@@ -16,3 +16,5 @@ coverage/
 *.log
 .DS_Store
 contracts/broadcast/**/run-[0-9]*.json
+sdk/test/fixtures/bytecode.json
+sdk/dist/
