@@ -38,8 +38,13 @@ how the static-analysis findings were handled.
 
 `slither . --filter-paths "lib/|test/|script/" --exclude-informational --exclude-optimization`
 
-Fixed:
-- `PassportMerchant.pay`: order now reserved before the external call (was already `nonReentrant`).
+Re-run on 2026-09-24: 10 results from 5 detectors — arbitrary-send-eth (1), calls-loop (1), reentrancy-no-eth (1),
+timestamp (6), unused-return (1) — all covered below; nothing new.
+
+Fixed (commit `56d2858`; the testnet deployment predates it, see below):
+- `PassportMerchant.pay`: order now reserved before the external call (was already `nonReentrant`). Slither
+  still reports *reentrancy-no-eth* for the final `paidOrders[orderId] = actionId` write after the gate call;
+  accepted: the function is `nonReentrant`, the order slot is already reserved, and only `pay` writes it.
 - `PasskeyAccount.execute`: event emitted before the calls (effects before interactions).
 - `PassportMerchant` constructor: zero-address check on the treasury.
 - Explicit initialisation of summary accumulators.

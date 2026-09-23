@@ -135,6 +135,9 @@ Checking *every* agent action on-chain only makes sense if the chain keeps up. M
   state; a fork test runs the gate against the official Identity Registry on Monad testnet
   (`0x8004A818BFB912233c491871b3d84c89A494BD9e`).
 
+Latency, gas and cost per action on Monad, coverage, and how to reproduce each number:
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
 ## What's new
 - **Enforcement, not just attestation.** Most agent-identity work tells a counterparty *who* an agent is.
   Agent Passport decides whether it may do *this*, *now*, inside the transaction that moves the money, and
@@ -175,7 +178,7 @@ Use it from an agent: `.mcp.json` wires the MCP server into Claude Code — see 
 | `mcp-server/` | MCP server (stdio + Streamable HTTP) with disclosure policy |
 | `demo/` | React app (owner / agent / verifier views), testnet scenario, live API, benchmark, passkey script |
 | `verifier/` | Off-chain vLEI owner verification (signify-ts / KERIA) that records its result on Monad |
-| `docs/` | [Integration](docs/INTEGRATION.md) · [Security](docs/SECURITY.md) · [vLEI setup](docs/VLEI_SETUP.md) · [Agent demo](docs/AGENT_DEMO.md) |
+| `docs/` | [Integration](docs/INTEGRATION.md) · [Benchmarks](docs/BENCHMARKS.md) · [Security](docs/SECURITY.md) · [vLEI setup](docs/VLEI_SETUP.md) · [Agent demo](docs/AGENT_DEMO.md) |
 
 ## Tech stack
 Solidity 0.8.28 · Foundry · OpenZeppelin Contracts 5.6.1 · TypeScript · viem · React + Vite · MCP TypeScript
@@ -188,7 +191,7 @@ All contracts are source-verified on Sourcify (exact match); every verified sour
 [`e8f16b0`](https://github.com/zuemen/agent-passport/commit/e8f16b0), from which they were deployed on 2026-09-23.
 One later commit ([`56d2858`](https://github.com/zuemen/agent-passport/commit/56d2858)) applied Slither fixes to four
 files (two explicit zero-initialisations, an event emitted earlier in `PasskeyAccount`, and `PassportMerchant`
-reserving the order before its external call); these are not redeployed and do not change the behaviour of the
+checking its treasury address and reserving the order before its external call); these are not redeployed and do not change the behaviour of the
 gate or the registries ([docs/SECURITY.md](docs/SECURITY.md)). Full list: [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
 
 | Contract | Address |
@@ -261,7 +264,7 @@ signature. Controls: a statement for another credential and an untrusted root ar
 recorded on Monad: **VLEI_VERIFIED** ([`0xee30f223…`](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)). Details: [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md).
 
 ## Status
-- [x] Contracts — 87 Foundry tests (unit, every revert path, fuzz, invariant) + fork test on the official ERC-8004 deployment; deployed and source-verified on Monad testnet
+- [x] Contracts — 87 Foundry tests (unit, every revert path, fuzz, invariant) + fork tests on the official ERC-8004 deployment; `PassportGate` 98.7% line coverage ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 18 tests incl. end-to-end on anvil and passkey owners
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet
 - [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
