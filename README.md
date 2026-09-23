@@ -7,6 +7,19 @@ Built for **Monad Metropolis · Track 04 — Trust / Identity & AI Infrastructur
 protocols build on: ERC-8004 agent identity + an owner-signed, selectively-disclosed authorization
 credential + on-chain enforcement and revocation, usable by any agent through MCP.
 
+**At a glance** — all on Monad testnet (chain id 10143):
+- **12 contracts, all Sourcify-verified**, entry point [`PassportGate`](https://testnet.monadscan.com/address/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109) ([all deployments](#deployments--monad-testnet-chain-id-10143)).
+- **A storyline of 9 real transactions**, 4 of them agent actions the gate refused on-chain — including a
+  prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
+- **The agent wallet held 0 apUSD throughout**: the gate pulls each authorized amount from the owner.
+- **Passkey owner**: one passkey signature sets an agent up ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e); a
+  software passkey in the script, a real Windows Hello / Touch ID prompt in the demo app), verified by Monad's P-256 precompile.
+- **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
+- **130 tests** (87 contract · 18 SDK · 19 MCP · 6 verifier) plus 2 fork tests against the official ERC-8004
+  deployment on Monad; CI on every push.
+
+![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
+
 ```solidity
 // Any protocol, before letting an agent act:
 contract MyProtocol is PassportGuarded {
@@ -24,7 +37,19 @@ AI agents are starting to move money on-chain for people and institutions. A cou
 tell **who is accountable** for an agent, **what it was authorized to do**, or **whether that authorization
 still holds** — without either exposing the owner's private details or trusting a black box. ERC-8004 gives
 agents an identity; it deliberately does not say who answers for them or what they may do. And an agent that
-holds funds can be talked out of them (prompt injection).
+holds funds can be talked out of them (prompt injection). An empirical study of ERC-8004 deployments finds
+that only 3% / 4% / 15% of registrations (Ethereum / BSC / Base) have a valid registration file with a live
+endpoint, and that feedback is rarely grounded in verifiable interactions
+([arXiv 2606.26028](https://arxiv.org/abs/2606.26028)).
+
+## Who uses it
+- **Protocols** (DEXs, merchants, lenders, payment apps) that want to let agents act, but only within limits
+  someone accountable has signed: inherit `PassportGuarded`, or call `PassportGate` — see
+  [docs/INTEGRATION.md](docs/INTEGRATION.md).
+- **Owners** — institutions or people who deploy agents — who need to cap, scope and instantly revoke what an
+  agent may do, from a wallet or a passkey, optionally backed by a vLEI-verified legal entity.
+- **Agent developers**: any MCP client gets the four Agent Passport tools, so an agent can prove its mandate
+  without handing over private data.
 
 ## How it works
 
@@ -58,7 +83,9 @@ flowchart LR
    root and the credential hash go on-chain (`CredentialStatusRegistry`).
 3. **Selective disclosure.** To act, the agent reveals exactly four claims — scope, per-tx limit, daily limit,
    and "this counterparty is allowed" — each with a Merkle proof, plus an EIP-712 signature over the exact
-   action. Owner name, purpose and other counterparties stay hidden.
+   action. Owner name, purpose and other counterparties stay hidden. The four disclosed claims travel in the
+   action's calldata, so once an action executes they are public, as is the owner's address; the hidden claims
+   never leave the owner and the agent.
 4. **Enforcement.** `PassportGate` checks identity, key binding, mandate status (revoked / expired / kill switch /
    agent sold), the four proofs, limits (booking the daily budget), and — if the counterparty requires it —
    that a registered vLEI verifier vouched for the owner. Funds are pulled **from the owner**; the agent wallet
@@ -92,15 +119,36 @@ sequenceDiagram
 ```
 
 ## Why Monad
-Checking *every* agent action on-chain only makes sense if it is fast and cheap. Measured on Monad testnet:
-a full verification (identity, status, four Merkle proofs, signature, budget) is part of each swap;
-**8 parallel agent actions settled in a single block, 679 ms from first submit to last receipt**, and the
-median submit-to-receipt time across the scenario was **827 ms**. The gate's unordered nonces let one agent
-run many actions at once instead of queueing. Passkey owners are verified with Monad's P-256 precompile.
+Checking *every* agent action on-chain only makes sense if the chain keeps up. Measured on Monad testnet:
+- **The check is inside the payment.** Identity, mandate status, four Merkle proofs, the agent's signature and
+  the daily budget are verified in the same transaction that moves the funds; median submit → receipt across
+  the scenario: **827 ms**.
+- **Revocation is one transaction.** The owner's revoke confirmed in 827 ms, and every relying party reads the
+  same state — the agent's next action was refused with `Revoked`. No revocation lists to distribute.
+- **Agents don't wait for receipts.** Action nonces are unordered, so an agent signs and submits actions back
+  to back: **8 fully verified swaps settled in one block, 679 ms from first submit to last receipt**
+  ([details](#concurrent-actions)).
+- **Passkey owners on-chain.** WebAuthn signatures are verified by Monad's P-256 precompile (`0x0100`,
+  EIP-7951, 6,900 gas), so an institution can hold its agents' mandates behind Face ID / Windows Hello
+  instead of a seed phrase.
+- **Built on the official ERC-8004 deployment.** The demo deploys its own registries so it controls the full
+  state; a fork test runs the gate against the official Identity Registry on Monad testnet
+  (`0x8004A818BFB912233c491871b3d84c89A494BD9e`).
+
+## What's new
+- **Enforcement, not just attestation.** Most agent-identity work tells a counterparty *who* an agent is.
+  Agent Passport decides whether it may do *this*, *now*, inside the transaction that moves the money, and
+  books the budget on-chain.
+- **A fooled agent has nothing to lose.** Funds stay with the owner; the gate pulls only what the signed
+  mandate allows, so a prompt-injected agent can at worst send a transaction that reverts.
+- **Accountable, without disclosure.** A vLEI verifier can vouch that a legal entity's officer stands behind
+  the mandate, and only counterparties of gate-authorized actions can leave feedback — the two gaps ERC-8004
+  leaves open (who answers for an agent, and reputation that is cheap to fake).
 
 ## Compared with
 | | How Agent Passport relates |
 |---|---|
+| Credential / attestation layers on ERC-8004 | They answer *who* an agent is. Agent Passport decides whether it may do this action now, inside the transaction that moves the money, keeps the budget and revocation on-chain, and ties reputation to authorized actions. |
 | ERC-8004 registries alone | Identity and feedback; no mandate, limits, revocation or accountable owner. Agent Passport builds on them — and runs on the official deployment (see the fork test). |
 | Wallet permissions (e.g. ERC-7715 / 7710) | Limit what a key may spend from one wallet. They don't give a counterparty verifiable, privacy-preserving proof of who stands behind an agent. Complementary. |
 | Google AP2 mandates | AP2 v0.2 carries user mandates as SD-JWT credentials; its open Payment Mandate constraints (amount range, budget, allowed payees, validity) mirror our claims, and its budget needs a record of past spending. Agent Passport keeps that record — and revocation — on Monad. Aligned in semantics, not an AP2 implementation. |
@@ -108,10 +156,12 @@ run many actions at once instead of queueing. Passkey owners are verified with M
 ## Quickstart
 ```bash
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
-cd contracts && forge test && cd ..            # 87 tests (+ fork test with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
-npm install && npm run build -w sdk && npm test -w sdk && npm test -w mcp-server
+cd contracts && forge test && cd ..            # 87 tests (+ 2 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
+npm install && npm run build -w sdk && npm run build -w mcp-server
+npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 18 + 19 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
 cp .env.example .env                           # add fresh testnet keys to run the scenario / live mode
+npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
 npm run scenario -w demo                       # the whole storyline on Monad testnet
 npm run api -w demo                            # live mode: the app sends real testnet transactions
 ```
@@ -125,11 +175,21 @@ Use it from an agent: `.mcp.json` wires the MCP server into Claude Code — see 
 | `mcp-server/` | MCP server (stdio + Streamable HTTP) with disclosure policy |
 | `demo/` | React app (owner / agent / verifier views), testnet scenario, live API, benchmark, passkey script |
 | `verifier/` | Off-chain vLEI owner verification (signify-ts / KERIA) that records its result on Monad |
-| `docs/` | [Security](docs/SECURITY.md) · [vLEI setup](docs/VLEI_SETUP.md) · [Agent demo](docs/AGENT_DEMO.md) |
+| `docs/` | [Integration](docs/INTEGRATION.md) · [Security](docs/SECURITY.md) · [vLEI setup](docs/VLEI_SETUP.md) · [Agent demo](docs/AGENT_DEMO.md) |
+
+## Tech stack
+Solidity 0.8.28 · Foundry · OpenZeppelin Contracts 5.6.1 · TypeScript · viem · React + Vite · MCP TypeScript
+SDK · W3C Verifiable Credentials 2.0 · EIP-712 / ERC-1271 · WebAuthn (P-256) · signify-ts + KERIA (vLEI) ·
+GitHub Actions · Slither · Sourcify
 
 ## Deployments — Monad testnet (chain id 10143)
 
-All contracts are source-verified (Sourcify, exact match). Full list: [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
+All contracts are source-verified on Sourcify (exact match); every verified source file is identical to commit
+[`e8f16b0`](https://github.com/zuemen/agent-passport/commit/e8f16b0), from which they were deployed on 2026-09-23.
+One later commit ([`56d2858`](https://github.com/zuemen/agent-passport/commit/56d2858)) applied Slither fixes to four
+files (two explicit zero-initialisations, an event emitted earlier in `PasskeyAccount`, and `PassportMerchant`
+reserving the order before its external call); these are not redeployed and do not change the behaviour of the
+gate or the registries ([docs/SECURITY.md](docs/SECURITY.md)). Full list: [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
 
 | Contract | Address |
 |---|---|
@@ -159,7 +219,7 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 | ❌ | agent | Agent tries 150 apUSD — over its per-transaction limit | ExceedsPerTxLimit | [`0x73442f47…`](https://testnet.monadscan.com/tx/0x73442f47375e85e7b1d5f337afb3dccf6116f61110f72bf42929ee5783dbfd35) |
 | ❌ | agent | Prompt-injected agent routes 50 apUSD through a look-alike DEX | PayeeNotAllowed | [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) |
 | ❌ | agent | Agent pays a merchant that requires a vLEI-verified owner | OwnerNotVleiVerified | [`0xc1ba95e1…`](https://testnet.monadscan.com/tx/0xc1ba95e169e239ac7184fb9f8349f35cdb4f59b06892109951f4b1ed00562dbf) |
-| ✅ | vlei | vLEI verifier records: owner is a verified legal entity |  | [`0x8abdad6f…`](https://testnet.monadscan.com/tx/0x8abdad6f7141a2dbf19810598878a263cbc246e074ef9b4631fe9c915575e2c3) |
+| ✅ | vlei | vLEI verifier records: owner is a verified legal entity (stand-in using the verifier key; the full vLEI check is [below](#vlei-owner-verification-off-chain--on-chain)) |  | [`0x8abdad6f…`](https://testnet.monadscan.com/tx/0x8abdad6f7141a2dbf19810598878a263cbc246e074ef9b4631fe9c915575e2c3) |
 | ✅ | agent | Same payment after the owner's vLEI is verified |  | [`0xc024a35e…`](https://testnet.monadscan.com/tx/0xc024a35e0bd6973a4aa3e7716f23f0eba114ac8bedc327b117223c8de017517e) |
 | ✅ | owner | Owner revokes the credential |  | [`0xa2b7294d…`](https://testnet.monadscan.com/tx/0xa2b7294daed5ee0f6da1b5367d60731d91614e885324d71f1518a84ce5192075) |
 | ❌ | agent | Agent swaps 10 apUSD after revocation | Revoked | [`0x52350221…`](https://testnet.monadscan.com/tx/0x5235022168c57d93b487c8925954c4c7320964d711fbfeda4ecacba3b0d42fa2) |
@@ -167,13 +227,17 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 Median submit → receipt latency in this run: **827 ms**. The agent wallet held 0 apUSD throughout —
 PassportGate pulls each authorized amount from the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
-### Parallel actions
-`npm run bench -w demo -- 8`: one agent submits 8 swaps at once. Each is fully verified on-chain —
-identity, mandate status, four Merkle proofs, the agent's signature, the daily budget — and settled.
-Result on 2026-09-23: **8/8 settled in 1 block**, 679 ms from first submit to
-last receipt ([block 65043995](https://testnet.monadscan.com/block/65043995)). PassportGate's unordered nonces mean an
-agent's actions never queue behind each other at the protocol level; this is what makes checking *every*
-action practical. Raw data: [`demo/public/runs/bench-latest.json`](demo/public/runs/bench-latest.json).
+![The same run in the demo app's ledger: what was granted, and what the gate refused and why](docs/img/demo-ledger.png)
+
+### Concurrent actions
+`npm run bench -w demo -- 8`: one agent signs 8 swaps and submits them back to back, without waiting for
+receipts. Each is fully verified on-chain — identity, mandate status, four Merkle proofs, the agent's
+signature, the daily budget — and settled. Result on 2026-09-23: **8/8 settled in 1 block**, 679 ms from first
+submit to last receipt ([block 65043995](https://testnet.monadscan.com/block/65043995)). PassportGate's action nonces
+are unordered, so the agent never waits for one action to land before signing the next. The eight swaps come
+from one wallet (consecutive transaction nonces) and book the same daily-budget slot, so they execute in order
+within the block; a benchmark with independent agents and mandates is future work.
+Raw data: [`demo/public/runs/bench-latest.json`](demo/public/runs/bench-latest.json).
 
 ### Passkey owner (no seed phrase)
 `npm run passkey -w demo`: the owner is a `PasskeyAccount` ([`0x1722993f…`](https://testnet.monadscan.com/address/0x1722993fa8E14733977214c4D886E789Ae8FE637)) controlled by a
@@ -200,7 +264,7 @@ recorded on Monad: **VLEI_VERIFIED** ([`0xee30f223…`](https://testnet.monadsca
 - [x] Contracts — 87 Foundry tests (unit, every revert path, fuzz, invariant) + fork test on the official ERC-8004 deployment; deployed and source-verified on Monad testnet
 - [x] SDK — 18 tests incl. end-to-end on anvil and passkey owners
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet
-- [x] Demo — testnet scenario, parallel benchmark, passkey owner (script and real browser passkey), React app with live mode
+- [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
 - [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))
 - [ ] Demo video
@@ -217,6 +281,7 @@ integration tests as a design reference).
 - Self Protocol Agent ID as an additional owner-assurance source
 - ZK selective disclosure (prove `amount ≤ maxPerTx` without revealing the limit)
 - USD-denominated limits via an oracle; more relying-party integrations
+- A concurrency benchmark with independent agents and mandates (separate storage slots)
 
 ## AI usage disclosure
 This project was developed with AI coding assistance: Claude (Anthropic) via Claude Code was used to write and

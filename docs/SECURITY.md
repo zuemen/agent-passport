@@ -23,6 +23,9 @@ how the static-analysis findings were handled.
 ## Known limitations
 - **Disclosed limits are revealed exactly.** Proving "limit ≥ amount" without revealing the limit needs a
   ZK range proof — roadmap.
+- **Disclosed claims are public once an action executes.** The four gate claims and their proofs travel in the
+  action's calldata, and the owner's address is on-chain (the credential's issuer, and the account funds are
+  pulled from). Selective disclosure keeps the *other* claims private: they never leave the owner and the agent.
 - **Trust in the vLEI verifier.** The chain records the verifier's result (and the OOR SAID hash), not the
   KERI/ACDC proof itself; the verifier trusts one configured root AID.
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.

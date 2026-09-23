@@ -1,26 +1,31 @@
-# Agent Passport — Hackathon / Grant Tracking
+# Agent Passport — Monad Metropolis submission
 
-> 本 repo 為 **Monad Metropolis** 的參賽作品。
-> Repo 建立於 2026-09-23，所有程式碼皆為 Monad Metropolis 賽期（2026-09-01 起）內新寫，可由 commit 歷史驗證。
+| | |
+|---|---|
+| Program | [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) (Monad Foundation) |
+| Track | 04 — Trust / Identity & AI Infrastructure |
+| Repository | https://github.com/zuemen/agent-passport — MIT license |
+| Network | Monad testnet (chain id 10143) — addresses in the [README](README.md#deployments--monad-testnet-chain-id-10143) and [`contracts/deployments/10143.json`](contracts/deployments/10143.json) |
+| Demo video | to be linked here |
 
-| Program | Branch | Target | Deadline |
-|---|---|---|---|
-| [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) | `main` | Track 04 — Trust / Identity & AI Infrastructure | 2026-10-13（評審 10/14–27，11/3 公布） |
+## What it is
+A primitive other protocols build on, so that before an AI agent moves money any protocol can check — in one
+call on Monad — who stands behind it, what it is allowed to do, and whether that still holds.
+- ERC-8004 Identity / Reputation / Validation registries, and a fork test against the official deployment
+- An owner-signed W3C Verifiable Credential (the mandate): scopes, per-transaction and daily limits, allowed
+  counterparties, validity — signed with EIP-712 or a passkey (ERC-1271)
+- Field-level selective disclosure: salted-hash Merkle commitments; ZK range proofs are on the roadmap
+- On-chain status and revocation, and `PassportGate`, which checks every action and pulls funds from the owner
+- Owner accountability through vLEI verification; feedback only from counterparties of authorized actions
+- An MCP server, so any agent can present its passport and act
 
-## What we are building
-**Verifiable identity & selective-disclosure credentials for AI agents.**
-- ERC-8004 Identity / Reputation / Validation registries for agents
-- Owner-issued W3C Verifiable Credential authorizing an agent (spend caps, allowed assets, expiry, scope)
-- Field-level selective disclosure (salted-hash commitments, SD-JWT style; ZK proofs on the roadmap)
-- On-chain credential status & revocation, and a `PassportGate` check other protocols can call before an agent acts
-
-Design lineage (concepts only, re-implemented here): MedSSI field-level disclosure policies
-(Merit Award, Digital Credential Scenario Innovation Challenge, Ministry of Digital Affairs, Taiwan, 2025).
-
-## Rules to remember (Monad)
-- Everything shown on 13 Oct must be built during the six-week window — keep all work in commits here.
-- ⚠️ Re-check on hackathon.monad.xyz: OSI license (this repo: MIT), ≤3-min demo video showing real Monad testnet
-  interactions, disclose AI-tool usage in README, one project per participant, one track.
+## Build window
+The repository was created on 2026-09-23 and everything in it was written during the hackathon period, as the
+commit history shows. Design lineage (concepts only, re-implemented here): the author's MedSSI field-level
+disclosure policies (Merit Award, Digital Credential Scenario Innovation Challenge, Ministry of Digital
+Affairs, Taiwan, 2025). No code from MedSSI or any other earlier project is used.
 
 ## AI usage disclosure
-Parts of this project are developed with AI coding assistants (Claude). All code is reviewed and owned by the team.
+Developed with AI coding assistance (Claude, via Claude Code) under the author's direction; see the
+[README](README.md#ai-usage-disclosure) for details. All design decisions, code and deployments were reviewed
+by the author, who is responsible for them.
