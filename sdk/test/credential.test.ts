@@ -127,7 +127,7 @@ describe("ERC-8004 registration file", () => {
       mcpEndpoint: "https://agent.example/mcp",
       passportGate: "0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109",
     });
-    expect(file.services[0]).toEqual({ name: "MCP", endpoint: "https://agent.example/mcp", version: "2025-06-18" });
+    expect(file.services[0]).toEqual({ name: "MCP", endpoint: "https://agent.example/mcp", version: "2025-11-25" });
     expect(file.registrations[0].agentRegistry).toBe("eip155:10143:0x5Df260dec1Ba15368f7fBe338D01a4C764CEAA51");
     expect(fromDataUri(toDataUri(file))).toEqual(file);
   });

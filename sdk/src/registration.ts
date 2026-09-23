@@ -25,7 +25,7 @@ export function buildRegistrationFile(opts: {
   passportGate: Address;
 }): RegistrationFile {
   const services: RegistrationFile["services"] = [];
-  if (opts.mcpEndpoint) services.push({ name: "MCP", endpoint: opts.mcpEndpoint, version: "2025-06-18" });
+  if (opts.mcpEndpoint) services.push({ name: "MCP", endpoint: opts.mcpEndpoint, version: "2025-11-25" });
   // Where counterparties verify this agent's authorization before acting with it.
   services.push({ name: "AgentPassportGate", endpoint: `eip155:${opts.chainId}:${opts.passportGate}`, version: "1" });
   return {

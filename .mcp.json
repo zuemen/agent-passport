@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "agent-passport": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp-server/dist/index.js"],
+      "env": {
+        "PASSPORT_CREDENTIALS": "mcp-server/credentials",
+        "PASSPORT_AGENT_KEY": "${DEMO_AGENT_KEY}"
+      }
+    }
+  }
+}
