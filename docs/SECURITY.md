@@ -51,6 +51,13 @@ Accepted (by design):
 The contracts deployed on Monad testnet on 2026-09-23 predate the three small fixes above; none of them
 changes behaviour of the gate, registries or the demo flow.
 
+## Dependency audit
+`npm audit`: one moderate advisory, GHSA-w5hq-g745-h8pq (uuid < 11.1.1, missing buffer bounds check in
+v3/v5/v6 when a buffer is passed), pulled in via `@openzeppelin/merkle-tree → @metamask/abi-utils →
+@metamask/utils`. Not reachable: `@metamask/utils` only calls `uuid.v4()`, in its `fs` module, which the
+merkle-tree code path does not load. Forcing uuid 11 via overrides left the tree inconsistent, so it is
+tracked here instead of patched.
+
 ## Tests
 87 Foundry tests (unit, every revert path, fuzz, an invariant that today's booked spend never exceeds the
 daily limit), 2 fork tests against the official ERC-8004 Identity Registry on Monad testnet, 18 SDK tests
