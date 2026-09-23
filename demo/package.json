@@ -11,7 +11,8 @@
     "scenario": "tsx scenario/run.ts",
     "api": "tsx scenario/server.ts",
     "bench": "tsx scenario/bench.ts",
-    "passkey": "tsx scenario/passkey.ts"
+    "passkey": "tsx scenario/passkey.ts",
+    "preflight": "tsx scenario/preflight.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

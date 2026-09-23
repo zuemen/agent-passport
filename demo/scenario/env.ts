@@ -19,7 +19,7 @@ function loadEnv(): Record<string, string> {
   return out;
 }
 
-const env = { ...loadEnv(), ...process.env } as Record<string, string | undefined>;
+export const env = { ...loadEnv(), ...process.env } as Record<string, string | undefined>;
 
 function key(name: string): Hex {
   const v = env[name];

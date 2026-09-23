@@ -12,6 +12,12 @@ npm run api -w demo & curl -X POST http://127.0.0.1:18790/api/step/issue
 export DEMO_AGENT_KEY=0x…     # the agent's key from .env (testnet only)
 claude                         # in the repo root; .mcp.json connects the agent-passport server
 ```
+The MCP server loads `mcp-server/credentials/` when it starts, so issue the mandate first and start (or
+`/mcp`-reconnect) the client afterwards — otherwise step 5 below revokes a mandate the agent isn't holding.
+
+Before recording, `npm run preflight -w demo` checks — read-only, it sends nothing — that the RPC answers, the
+contracts have code, the demo wallets can pay for a run (agent ≥ 0.3 MON), the demo API and app are up, and
+the agent's mandate is active.
 
 ## Script (≈60 s of the video)
 1. *"You are agent #1. Check whether you may swap 20 apUSD on the DEX, then do it."*
