@@ -7,7 +7,7 @@ how the static-analysis findings were handled.
 
 | Threat | Defence | Where |
 |---|---|---|
-| Agent tricked (prompt injection) into sending funds elsewhere | Agent wallet holds no funds; PassportGate pulls from the owner only for an allowed payee, scope, asset and amount | `authorizeAndPull`, `payee` claim |
+| Agent tricked (prompt injection) into sending funds elsewhere | Agent wallet holds no tokens (only gas); PassportGate pulls from the owner only for an allowed payee, scope, asset and amount | `authorizeAndPull`, `payee` claim |
 | Agent exceeds its limits | Per-tx and daily limits are mandatory disclosed claims, enforced and booked on-chain | `PassportGate.check`, `spent` |
 | Agent hides a restrictive claim | All four gate claims are required; missing/mismatched key → rejected | `_checkClaims` |
 | Forged or lifted claims | Every disclosure is a Merkle proof against the root the owner anchored | `_proves`, SDK `verifyPresentation` |
@@ -29,6 +29,15 @@ how the static-analysis findings were handled.
 - **Trust in the vLEI verifier.** The chain records the verifier's result (and the OOR SAID hash), not the
   KERI/ACDC proof itself; the verifier trusts one configured root AID.
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
+- **Feedback is grounded, not Sybil-proof.** The gate accepts zero-amount actions and the demo DEX rates every
+  settled swap, so an agent can generate positive feedback for the cost of gas; an owner can also run its own
+  relying party. Readers of the reputation registry should weight feedback by relying party and amount; a
+  minimum amount per scope is future work.
+- **A fooled agent can still spend within its mandate.** The gate stops payments to counterparties the mandate
+  does not allow and amounts above its limits; inside those limits a manipulated agent can still act badly (for
+  example a swap with no slippage bound), and it pays gas for anything it sends.
+- **The owner's allowance bounds a gate bug.** Owner-funded actions need the owner to approve the gate; the
+  demo approves an unlimited amount for convenience. Approve only what the active mandates can spend.
 - **Salted claims are only as private as their salts.** The SDK uses 32 random bytes per claim.
 - **Monad charges the gas limit.** Rejected actions sent on purpose (demo `forceSubmit`) still pay their gas.
 - **Demo contracts** (`MockToken`, `PassportDex`, `PassportMerchant`) are for the testnet demo only.
@@ -56,7 +65,7 @@ Accepted (by design):
   validator influence does not change any outcome that matters here.
 - *unused-return* in `PassportGuarded._pullWithPassport` — the agent id is intentionally not needed.
 
-The contracts deployed on Monad testnet on 2026-09-23 predate the three small fixes above; none of them
+The contracts deployed on Monad testnet on 2026-09-23 predate the fixes above; none of them
 changes behaviour of the gate, registries or the demo flow.
 
 ## Dependency audit
@@ -67,7 +76,7 @@ merkle-tree code path does not load. Forcing uuid 11 via overrides left the tree
 tracked here instead of patched.
 
 ## Tests
-87 Foundry tests (unit, every revert path, fuzz, an invariant that today's booked spend never exceeds the
+87 Foundry tests (unit, every gate reason code, fuzz, an invariant that today's booked spend never exceeds the
 daily limit), 2 fork tests against the official ERC-8004 Identity Registry on Monad testnet, 18 SDK tests
 (incl. end-to-end on anvil and passkey owners), 19 MCP tests (incl. HTTP transport guards) and 6 vLEI
 verifier tests.

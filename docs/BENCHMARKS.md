@@ -108,8 +108,8 @@ check-only `_requirePassport` path has no test yet.
 
 | Suite | Tests | Command |
 |---|---|---|
-| Contracts (unit, every revert path, fuzz, invariant) | 87 | `cd contracts && forge test` |
-| Fork tests against the official ERC-8004 deployment | 2 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
+| Contracts (unit, every gate reason code, fuzz, invariant) | 87 | `cd contracts && forge test` |
+| Fork tests against the official ERC-8004 Identity Registry | 2 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
 | SDK (incl. end-to-end on anvil, passkey owners) | 18 | `npm test -w sdk` |
 | MCP server | 19 | `npm test -w mcp-server` |
 | vLEI verifier | 6 | `npm test -w @agent-passport/verifier` |

@@ -24,7 +24,8 @@ Either way the transaction sender must be the agent wallet registered for the cr
 (`CallerIsNotAgent` otherwise), and the gate reverts with `NotAuthorized(reason)` if the action is not allowed.
 
 A complete relying party, from [`contracts/src/demo/PassportMerchant.sol`](../contracts/src/demo/PassportMerchant.sol)
-(abridged):
+(abridged; this is the current source — the testnet deployment predates its treasury check and order reservation,
+see the README's deployment notes):
 
 ```solidity
 contract PassportMerchant is PassportGuarded, ReentrancyGuard {
@@ -63,7 +64,8 @@ Checklist:
    verification. You learn that the owner is verified, not who it is.
 3. **Owner-funded? The owner approves the gate once.** For `_pullWithPassport`, the owner calls
    `approve(PassportGate, amount)` on the asset; the demo does this at setup
-   ([`demo/scenario/scenario.ts`](../demo/scenario/scenario.ts), step "Owner lets PassportGate pull funds").
+   ([`demo/scenario/scenario.ts`](../demo/scenario/scenario.ts), step "Owner lets PassportGate pull funds") with an
+   unlimited amount for convenience — in production approve only what the active mandates can spend.
 4. **Keep the `actionId`.** It identifies the authorized action; the counterparty of that action — and only it
    — can rate the agent once through `GroundedFeedback`.
 

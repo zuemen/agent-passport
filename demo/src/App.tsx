@@ -236,7 +236,7 @@ export default function App() {
               <div className="field"><div className="k">Agent wallet balance</div><div className="v">{liveState ? usd(liveState.agentUsd) : "…"} apUSD</div></div>
               <div className="field" style={{ textAlign: "right" }}><div className="k">Owner treasury</div><div className="v">{liveState ? usd(liveState.ownerUsd) : "…"} apUSD</div></div>
             </div>
-            <div className="note">The agent never holds funds: PassportGate pulls each authorized amount from the owner.</div>
+            <div className="note">The agent never holds tokens: PassportGate pulls each authorized amount from the owner.</div>
           </div>
           <div className="mrz" aria-label="machine readable zone">{mrz(run)}</div>
         </aside>
@@ -407,7 +407,7 @@ function VerifierPanel({ run, verified, status }: { run: RunLog; verified: boole
         {disclosed.map((d, i) => (
           <div className="doc-line" key={i}><span className="k">{d.k}</span><span>{d.v}</span></div>
         ))}
-        <div className="doc-line"><span className="k">Owner</span><span className={`seal ${verified ? "ok" : "gold"}`}>{verified ? "✓ vLEI-verified legal entity" : "no vLEI verification on record"}</span></div>
+        <div className="doc-line"><span className="k">Owner</span><span className={`seal ${verified ? "ok" : "gold"}`}>{verified ? "✓ vLEI verification on record" : "no vLEI verification on record"}</span></div>
         <div className="doc-line"><span className="k">Mandate status</span><span className={`seal ${status === "Active" ? "ok" : "no"}`}>{status} · read live from Monad</span></div>
         {hidden.map((_, i) => (
           <div className="doc-line" key={`h${i}`}><span className="k">undisclosed</span><span className="redact" style={{ width: `${40 + ((i * 37) % 50)}%` }} /></div>
