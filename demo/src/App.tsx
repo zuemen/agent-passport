@@ -195,7 +195,7 @@ export default function App() {
         <div className="metric"><div className="v">{run.metrics.medianLatencyMs}<small>ms</small></div><div className="k">median submit → receipt</div></div>
         <div className="metric"><div className="v">{run.verifierView.disclosed.length}<small>/ {run.verifierView.disclosed.length + run.verifierView.hiddenClaimCount} claims</small></div><div className="k">disclosed to the DEX, each Merkle-proven</div></div>
         {bench ? (
-          <div className="metric"><div className="v">{bench.succeeded}<small>actions · {bench.blocksSpanned} block</small></div><div className="k">parallel, each fully verified · {bench.allReceiptsMs} ms</div></div>
+          <div className="metric"><div className="v">{bench.succeeded}<small>actions · {bench.blocksSpanned} block</small></div><div className="k">sent back to back, each fully verified · {bench.allReceiptsMs} ms</div></div>
         ) : (
           <div className="metric"><div className="v">{txCount}<small>txs</small></div><div className="k">real transactions in this run</div></div>
         )}

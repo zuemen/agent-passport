@@ -138,7 +138,7 @@ export function gateDomain(chainId: number, gate: Address) {
   return { name: "AgentPassportGate", version: "1", chainId, verifyingContract: gate } as const;
 }
 
-/** Random 256-bit nonce: the gate uses unordered nonces, so agents can run actions in parallel. */
+/** Random 256-bit nonce: the gate uses unordered nonces, so an agent can sign its next action before the last one lands. */
 export function randomNonce(): bigint {
   return hexToBigInt(bytesToHex(crypto.getRandomValues(new Uint8Array(32))));
 }
