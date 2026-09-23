@@ -1,12 +1,11 @@
 # Agent Passport — Hackathon / Grant Tracking
 
-> 本 repo 為 **Monad Metropolis**（主線 `main`）與 **Celo Prezenti Grants – Frontier Pool**（分支 `celo-prezenti`）的參賽作品。
+> 本 repo 為 **Monad Metropolis** 的參賽作品。
 > Repo 建立於 2026-09-23，所有程式碼皆為 Monad Metropolis 賽期（2026-09-01 起）內新寫，可由 commit 歷史驗證。
 
 | Program | Branch | Target | Deadline |
 |---|---|---|---|
 | [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) | `main` | Track 04 — Trust / Identity & AI Infrastructure | 2026-10-13（評審 10/14–27，11/3 公布） |
-| Celo Prezenti Grants — Frontier Pool | `celo-prezenti` | Agent identity / verification layer (ERC-8004 + Self Protocol Agent ID) | 2026-12-28 |
 
 ## What we are building
 **Verifiable identity & selective-disclosure credentials for AI agents.**

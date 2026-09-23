@@ -214,7 +214,6 @@ official MCP TypeScript SDK, signify-ts (the verifier's KERI call sequence follo
 integration tests as a design reference).
 
 ## Future work
-- Celo port
 - Self Protocol Agent ID as an additional owner-assurance source
 - ZK selective disclosure (prove `amount ≤ maxPerTx` without revealing the limit)
 - USD-denominated limits via an oracle; more relying-party integrations
