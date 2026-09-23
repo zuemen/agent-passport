@@ -6,3 +6,4 @@ export * from "./verify.js";
 export * from "./chain.js";
 export * from "./deployments.js";
 export * from "./serialize.js";
+export * from "./registration.js";

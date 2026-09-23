@@ -1,0 +1,26 @@
+{
+  "name": "@agent-passport/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing Agent Passport tools: present_passport, verify_passport, check_authorization.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "agent-passport-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5",
+    "@agent-passport/sdk": "0.1.0",
+    "viem": "^2.56.8"
+  }
+}

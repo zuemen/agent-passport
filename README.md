@@ -41,7 +41,7 @@ All contracts are source-verified (Sourcify, exact match). Full list: [`contract
 ## Status
 - [x] M1 — contracts, 87 Foundry tests (unit, revert paths, fuzz, invariant), deployed to Monad testnet
 - [x] M2 — TypeScript SDK (issue, selectively disclose, verify, revoke), 14 tests incl. end-to-end on anvil
-- [ ] M3 — MCP server (`present_passport`, `verify_passport`, `check_authorization`)
+- [x] M3 — MCP server (`present_passport`, `verify_passport`, `check_authorization`), stdio + Streamable HTTP, 6 tests
 - [ ] M4 — demo app, end-to-end scenario on testnet; vLEI owner verification
 - [ ] M5 — docs, architecture diagram, demo video
 

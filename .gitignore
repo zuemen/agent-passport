@@ -18,3 +18,5 @@ coverage/
 contracts/broadcast/**/run-[0-9]*.json
 sdk/test/fixtures/bytecode.json
 sdk/dist/
+mcp-server/dist/
+mcp-server/credentials/

@@ -21,14 +21,19 @@ export async function startAnvil(port: number) {
     rpcUrls: { default: { http: [`http://127.0.0.1:${port}`] } },
   });
   const publicClient = createPublicClient({ chain, transport: http(), pollingInterval: 50 });
-  for (let i = 0; i < 100; i++) {
+  const probe = createPublicClient({ chain, transport: http(undefined, { timeout: 1_000, retryCount: 0 }) });
+  let up = false;
+  for (let i = 0; i < 50 && !up; i++) {
     try {
-      await publicClient.getChainId();
-      break;
+      await probe.getChainId();
+      up = true;
     } catch {
       await new Promise((r) => setTimeout(r, 100));
     }
   }
+  // On Windows, Hyper-V reserves port ranges (`netsh interface ipv4 show excludedportrange protocol=tcp`);
+  // anvil then fails to bind with os error 10013. Pick ports outside those ranges.
+  if (!up) throw new Error(`anvil did not come up on port ${port}`);
   const wallet = (index: number) =>
     createWalletClient({ chain, transport: http(), account: mnemonicToAccount(MNEMONIC, { addressIndex: index }) });
   return { proc, chain, publicClient, wallet, account: (i: number) => mnemonicToAccount(MNEMONIC, { addressIndex: i }) };

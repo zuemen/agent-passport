@@ -36,7 +36,7 @@ let held: HeldCredential;
 const USD = (n: number) => BigInt(n) * 1_000_000n;
 
 beforeAll(async () => {
-  env = await startAnvil(8547);
+  env = await startAnvil(18547);
   const { publicClient: pc } = env;
   const owner = env.wallet(0);
   const agentWallet = env.wallet(1);

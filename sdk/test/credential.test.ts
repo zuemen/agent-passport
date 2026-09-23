@@ -114,3 +114,21 @@ describe("issue / present / verify (offline)", () => {
     expect(back).toEqual(held);
   });
 });
+
+describe("ERC-8004 registration file", () => {
+  it("advertises the MCP endpoint and round-trips through a data URI", async () => {
+    const { buildRegistrationFile, toDataUri, fromDataUri } = await import("../src/index.js");
+    const file = buildRegistrationFile({
+      name: "Treasury Agent",
+      description: "Rebalances an example treasury within an Agent Passport mandate.",
+      chainId: 10143,
+      identityRegistry: "0x5Df260dec1Ba15368f7fBe338D01a4C764CEAA51",
+      agentId: 3n,
+      mcpEndpoint: "https://agent.example/mcp",
+      passportGate: "0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109",
+    });
+    expect(file.services[0]).toEqual({ name: "MCP", endpoint: "https://agent.example/mcp", version: "2025-06-18" });
+    expect(file.registrations[0].agentRegistry).toBe("eip155:10143:0x5Df260dec1Ba15368f7fBe338D01a4C764CEAA51");
+    expect(fromDataUri(toDataUri(file))).toEqual(file);
+  });
+});
