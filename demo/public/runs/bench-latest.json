@@ -1,0 +1,52 @@
+{
+  "at": "2026-09-23T14:57:42.521Z",
+  "actions": 8,
+  "succeeded": 8,
+  "submitMs": 304,
+  "allReceiptsMs": 679,
+  "blocksSpanned": 1,
+  "firstBlockAfterSubmit": 2,
+  "gasUsedPerAction": "618665",
+  "txs": [
+    {
+      "hash": "0xbbbd01d461ed9dc35c0c90a85ce01698d6818f07df019206d9cdbc7435f71b07",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x74c09c2bea4c650df38e98bdfe381279de83f93a78f548eddb1a044d6984da05",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0xe6b6c1cd9aa925d3ae9588e2ce511e5db8db13dc76023ff925c2546f04125448",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x6e4ddfc568523e538069f76097dab1d683c2b22326a5b2432ceedc6fd3ee5c3f",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x16cbef3aff11c11a66b02a70a97740791314d67339787aa079802241a338717f",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x4c47ff42d1b22194be568939dea1878197da702d5ede371f4d3e61b339e04a39",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x114f822e52949f374aadbd55ab6ce1b0af3217e5d60daae527b6b519b4260966",
+      "block": "65043995",
+      "status": "success"
+    },
+    {
+      "hash": "0x8aebd55d006384f02e6491d5111bf4ac3cd6a76da16eb23fd1663fd70ecb8dcf",
+      "block": "65043995",
+      "status": "success"
+    }
+  ]
+}

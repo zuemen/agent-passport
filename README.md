@@ -59,6 +59,14 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 Median submit → receipt latency in this run: **827 ms**. The agent wallet held 0 apUSD throughout —
 PassportGate pulls each authorized amount from the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
+### Parallel actions
+`npm run bench -w demo -- 8`: one agent submits 8 swaps at once. Each is fully verified on-chain —
+identity, mandate status, four Merkle proofs, the agent's signature, the daily budget — and settled.
+Result on 2026-09-23: **8/8 settled in 1 block**, 679 ms from first submit to
+last receipt ([block 65043995](https://testnet.monadscan.com/block/65043995)). PassportGate's unordered nonces mean an
+agent's actions never queue behind each other at the protocol level; this is what makes checking *every*
+action practical. Raw data: [`demo/public/runs/bench-latest.json`](demo/public/runs/bench-latest.json).
+
 ## Status
 - [x] M1 — contracts, 87 Foundry tests (unit, revert paths, fuzz, invariant), deployed to Monad testnet
 - [x] M2 — TypeScript SDK (issue, selectively disclose, verify, revoke), 14 tests incl. end-to-end on anvil

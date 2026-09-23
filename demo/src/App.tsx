@@ -106,9 +106,11 @@ export default function App() {
   const [error, setError] = useState<string>();
   const [liveSteps, setLiveSteps] = useState<StepLog[]>([]);
   const [lastLive, setLastLive] = useState<string>();
+  const [bench, setBench] = useState<{ succeeded: number; blocksSpanned: number; allReceiptsMs: number }>();
 
   useEffect(() => {
     loadRecordedRun().then(setRun);
+    fetch(`${import.meta.env.BASE_URL}runs/bench-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setBench, () => {});
     probeLive().then(async (ok) => {
       setLive(ok);
       if (!ok) return;
@@ -191,7 +193,11 @@ export default function App() {
       <section className="metrics" aria-label="Measured on Monad testnet">
         <div className="metric"><div className="v">{run.metrics.medianLatencyMs}<small>ms</small></div><div className="k">median submit → receipt</div></div>
         <div className="metric"><div className="v">{run.verifierView.disclosed.length}<small>/ {run.verifierView.disclosed.length + run.verifierView.hiddenClaimCount} claims</small></div><div className="k">disclosed to the DEX, each Merkle-proven</div></div>
-        <div className="metric"><div className="v">{txCount}<small>txs</small></div><div className="k">real transactions in this run</div></div>
+        {bench ? (
+          <div className="metric"><div className="v">{bench.succeeded}<small>actions · {bench.blocksSpanned} block</small></div><div className="k">parallel, each fully verified · {bench.allReceiptsMs} ms</div></div>
+        ) : (
+          <div className="metric"><div className="v">{txCount}<small>txs</small></div><div className="k">real transactions in this run</div></div>
+        )}
         <div className="metric"><div className="v">{steps.filter((s) => s.outcome === "rejected").length}<small>/ {steps.filter((s) => s.role === "agent").length}</small></div><div className="k">agent actions denied on-chain</div></div>
       </section>
 
