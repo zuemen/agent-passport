@@ -22,8 +22,13 @@ export async function loadRecordedRun(): Promise<RunLog> {
   return r.json();
 }
 
-/** Live mode is available when the local demo API (npm run api) answers. */
+/**
+ * Live mode is available when the local demo API (npm run api) answers.
+ * A hosted copy (GitHub Pages) never probes the visitor's local network unless an API is configured.
+ */
 export async function probeLive(): Promise<boolean> {
+  const localPage = ["localhost", "127.0.0.1"].includes(location.hostname);
+  if (!localPage && !import.meta.env.VITE_DEMO_API) return false;
   try {
     const r = await fetch(`${API}/api/state`, { signal: AbortSignal.timeout(800) });
     return r.ok;

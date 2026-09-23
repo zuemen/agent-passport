@@ -425,7 +425,7 @@ function VerifierPanel({ run, verified, status }: { run: RunLog; verified: boole
           <input id="amt" type="range" min={1} max={300} value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
           <div className="actions"><button className="btn" onClick={ask} disabled={asking}>{asking ? "Asking…" : "Check authorization"}</button></div>
         </div>
-        <div style={{ minWidth: 200, display: "grid", placeItems: "center" }}>
+        <div className="verdict">
           {verdict ? (
             <Stamp
               key={verdict.at}

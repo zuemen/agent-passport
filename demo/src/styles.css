@@ -111,6 +111,7 @@ button { font: inherit; color: inherit; }
 /* ------------------------------------------------------------------ layout */
 .grid { display: grid; grid-template-columns: 430px 1fr; gap: 36px; align-items: start; }
 @media (max-width: 1080px) { .grid { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(2, 1fr); } }
+.grid > * { min-width: 0; }
 
 /* ------------------------------------------------------------------ passport document */
 .passport {
@@ -233,6 +234,7 @@ button { font: inherit; color: inherit; }
 .check input[type="range"] { width: 100%; accent-color: var(--ink); }
 .check .amt { font-family: var(--serif); font-size: 34px; line-height: 1; }
 .check .amt small { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+.verdict { min-width: 200px; display: grid; place-items: center; }
 .seg { display: inline-flex; border: 1px solid var(--ink); margin-bottom: 12px; }
 .seg button { background: none; border: 0; padding: 5px 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
@@ -334,3 +336,29 @@ button { font: inherit; color: inherit; }
 .pk-steps span { display: inline-block; width: 18px; font-family: var(--mono); }
 .pk-steps .ok { color: var(--grant); } .pk-steps .no { color: var(--deny); } .pk-steps .sig { color: var(--ink-3); }
 .pk-steps a { font-family: var(--mono); font-size: 12px; margin-left: 6px; }
+
+/* ------------------------------------------------------------------ single column */
+@media (max-width: 1080px) {
+  .passport { position: relative; top: auto; }
+  .metric:nth-child(odd) { padding-left: 0; }
+  .metric:nth-child(2n) { border-right: 0; }
+}
+
+/* ------------------------------------------------------------------ phone */
+@media (max-width: 640px) {
+  .shell { padding: 20px 16px 48px; }
+  .mast { grid-template-columns: 1fr; }
+  .mast-meta { justify-items: start; }
+  .tabs { overflow-x: auto; }
+  .mandate td:first-child { width: auto; }
+  .doc-line { grid-template-columns: 1fr; gap: 2px; }
+  .check { grid-template-columns: 1fr; }
+  .verdict { min-width: 0; justify-items: start; }
+  .tab { flex: 1; padding: 8px 8px 7px; text-align: left; }
+  .tab b { display: block; }
+  .entry { grid-template-columns: 28px 1fr auto; grid-template-areas: "n who st" ". body body"; row-gap: 6px; }
+  .entry .n { grid-area: n; }
+  .entry .who { grid-area: who; }
+  .entry > :nth-child(3) { grid-area: body; }
+  .entry .st { grid-area: st; }
+}
