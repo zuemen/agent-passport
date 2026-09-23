@@ -41,4 +41,5 @@ jobs:
       - run: npm test -w sdk
       - run: npm run build -w mcp-server
       - run: npm test -w mcp-server
+      - run: npm test -w @agent-passport/verifier
       - run: npm run build -w demo

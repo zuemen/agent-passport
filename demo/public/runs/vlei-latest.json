@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-23T15:31:24.361Z",
+  "credentialId": "0xb124c5eff003df217fb1592ad1dc0acfa21106fecde1fb8fbc7b3c50802b2ecf",
+  "holderAid": "EKfC-HV41MFcWajcerQ-RGYqxHctxgpi_zqz_qD4yNwD",
+  "officialRole": "Treasury Officer",
+  "lei": "APTESTEXAMPLETREA002",
+  "oorSaid": "EGmE-xkmD2-3af3wMBgLO9bQR8Dt8T3ASrfocq_LOTw7",
+  "oorSaidHash": "0xe329815d4bd24722140be110fb0ec8dbf01c5bfb8d62542115d9e505c04605a5",
+  "checks": {
+    "valid": true,
+    "tamperedStatementRejected": true,
+    "untrustedRootRejected": true
+  },
+  "tx": "0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6",
+  "block": "65050571",
+  "ownerAssurance": "VLEI_VERIFIED",
+  "note": "Test vLEI chain on a local KERIA stack; fictional entity and LEI."
+}

@@ -23,7 +23,8 @@ how the static-analysis findings were handled.
 ## Known limitations
 - **Disclosed limits are revealed exactly.** Proving "limit ≥ amount" without revealing the limit needs a
   ZK range proof — roadmap.
-- **Trust in the vLEI verifier.** The chain records the verifier's result, not the KERI/ACDC proof itself.
+- **Trust in the vLEI verifier.** The chain records the verifier's result (and the OOR SAID hash), not the
+  KERI/ACDC proof itself; the verifier trusts one configured root AID.
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
 - **Salted claims are only as private as their salts.** The SDK uses 32 random bytes per claim.
 - **Monad charges the gas limit.** Rejected actions sent on purpose (demo `forceSubmit`) still pay their gas.
@@ -52,5 +53,6 @@ changes behaviour of the gate, registries or the demo flow.
 
 ## Tests
 87 Foundry tests (unit, every revert path, fuzz, an invariant that today's booked spend never exceeds the
-daily limit), 2 fork tests against the official ERC-8004 Identity Registry on Monad testnet, 15 SDK tests
-(incl. end-to-end on anvil) and 19 MCP tests (incl. HTTP transport guards).
+daily limit), 2 fork tests against the official ERC-8004 Identity Registry on Monad testnet, 18 SDK tests
+(incl. end-to-end on anvil and passkey owners), 19 MCP tests (incl. HTTP transport guards) and 6 vLEI
+verifier tests.

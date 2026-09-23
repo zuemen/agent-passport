@@ -63,8 +63,9 @@ flowchart LR
    agent sold), the four proofs, limits (booking the daily budget), and — if the counterparty requires it —
    that a registered vLEI verifier vouched for the owner. Funds are pulled **from the owner**; the agent wallet
    never holds any, so a fooled agent has nothing to lose.
-5. **Accountability.** An off-chain verifier checks the owner's GLEIF vLEI chain (legal entity → OOR/ECR role
-   credential) and records only the result and a SAID hash on-chain (see [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md)).
+5. **Accountability.** An off-chain verifier checks the owner's GLEIF vLEI chain (root → QVI → legal entity →
+   OOR role credential) and a KERI signature by the role holder binding this credential, then records only
+   the result and a SAID hash on-chain (`verifier/`, [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md)).
 6. **Reputation that can't be farmed.** `GroundedFeedback` lets only the counterparty of a gate-authorized
    action rate it, once, into a standard ERC-8004 Reputation Registry.
 7. **Any agent can use it.** The MCP server exposes `present_passport`, `verify_passport`,
@@ -123,6 +124,7 @@ Use it from an agent: `.mcp.json` wires the MCP server into Claude Code — see 
 | `sdk/` | TypeScript (viem): issue, disclose, verify, revoke, sign actions, passkey helpers, ERC-8004 registration file |
 | `mcp-server/` | MCP server (stdio + Streamable HTTP) with disclosure policy |
 | `demo/` | React app (owner / agent / verifier views), testnet scenario, live API, benchmark, passkey script |
+| `verifier/` | Off-chain vLEI owner verification (signify-ts / KERIA) that records its result on Monad |
 | `docs/` | [Security](docs/SECURITY.md) · [vLEI setup](docs/VLEI_SETUP.md) · [Agent demo](docs/AGENT_DEMO.md) |
 
 ## Deployments — Monad testnet (chain id 10143)
@@ -186,13 +188,20 @@ whole on-chain setup:
 | ✅ | Passkey prompt: revoke the mandate |  | [`0x1706dc4d…`](https://testnet.monadscan.com/tx/0x1706dc4d4dcc94e1831abe69c4407509d012625a4c644a86b9b5f7a120b6406f) |
 | ❌ | Agent swaps 10 apUSD after the passkey revocation | Revoked | [`0x9706790f…`](https://testnet.monadscan.com/tx/0x9706790fbd8f9cab46fdf4fc9f2025f65bcff3cc66ba67cc8ae1265a9b270cbb) |
 
+### vLEI owner verification (off-chain → on-chain)
+`npm run verify -w verifier` against a test vLEI chain on a local KERIA stack (GLEIF root → QVI → Example
+Treasury Ltd → OOR role credential): the treasury officer signs a statement binding the Agent Passport
+credential, presents the OOR credential over IPEX, and the verifier checks the whole chain and the
+signature. Controls: a statement for another credential and an untrusted root are both rejected. Result
+recorded on Monad: **VLEI_VERIFIED** ([`0xee30f223…`](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)). Details: [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md).
+
 ## Status
 - [x] Contracts — 87 Foundry tests (unit, every revert path, fuzz, invariant) + fork test on the official ERC-8004 deployment; deployed and source-verified on Monad testnet
 - [x] SDK — 18 tests incl. end-to-end on anvil and passkey owners
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet
-- [x] Demo — testnet scenario, parallel benchmark, passkey owner, React app with live mode
+- [x] Demo — testnet scenario, parallel benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
-- [ ] vLEI verifier service (off-chain) — [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md)
+- [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))
 - [ ] Demo video
 
 ## Design reference
@@ -200,7 +209,8 @@ Concepts (field-level disclosure policies, identity assurance levels, revocation
 earlier work on selective disclosure of health credentials (MedSSI). No code from that or any other earlier
 project is used; everything in this repository was written for Monad Metropolis, starting 2026-09-23 (see the
 commit history). External code: OpenZeppelin Contracts 5.6.1, forge-std, viem, @openzeppelin/merkle-tree, the
-official MCP TypeScript SDK.
+official MCP TypeScript SDK, signify-ts (the verifier's KERI call sequence follows the public signify-ts
+integration tests as a design reference).
 
 ## Future work
 - Celo port

@@ -1,0 +1,25 @@
+{
+  "name": "@agent-passport/verifier",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Off-chain vLEI owner verification for Agent Passport: checks a GLEIF vLEI role-credential chain and records the result on Monad.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "chain": "tsx src/setupChain.ts",
+    "verify": "tsx src/run.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@agent-passport/sdk": "^0.1.0",
+    "signify-ts": "^0.4.0",
+    "viem": "^2.56.8"
+  }
+}

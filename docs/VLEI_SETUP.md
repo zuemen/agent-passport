@@ -1,54 +1,59 @@
-# vLEI owner verification — setup notes
+# vLEI owner verification — setup and run
 
-Status: **researched, not yet run** (2026-09-23). Scheduled for 10/7–10/10; if the chain below does not
-run end to end within two days it moves to the roadmap.
+Status: **working** (2026-09-23). A test vLEI chain runs on a local KERIA stack; the verifier checks it
+and records the result on Monad testnet.
 
-## What we verify (off-chain)
+## What is verified
 ```
-GLEIF root (test) → QVI → Legal Entity vLEI → OOR/ECR Auth → OOR or ECR role credential → holder AID
-                                                                                   │
-                            holder AID signs keccak256(credentialId) ─────────────┘
+test GLEIF root ─QVI▶ test QVI ─LE▶ Example Treasury Ltd ─OOR AUTH▶ QVI ─OOR▶ treasury officer (role AID)
+                                                                                      │
+             officer signs {"type":"AgentPassportOwnerBinding/v1", chainId, statusRegistry,
+                            credentialId, issuer, lei}  ─────────────────────────────┘
 ```
-If the chain is valid, unrevoked, and the role holder signed this Agent Passport credential's id, the
-verifier service calls `CredentialStatusRegistry.recordOwnerAssurance(credentialId, VLEI_VERIFIED,
-keccak256(roleCredentialSAID))`. KERI/ACDC stays off-chain; only the result goes on-chain.
+The officer presents the OOR credential to the verifier over IPEX (KERIA validates signatures and anchors
+on admit). `verifier/src/verifyOwner.ts` then checks: OOR schema and status; OOR AUTH names the same
+person and LEI and authorised the issuing QVI; the Legal Entity vLEI has the same LEI and issued the
+OOR AUTH; the QVI vLEI issued the LE credential and was issued by the **trusted root**; nothing revoked;
+the binding signature verifies against the officer's current key state. Only then
+`CredentialStatusRegistry.recordOwnerAssurance(credentialId, VLEI_VERIFIED, keccak256(OOR SAID))` is sent.
 
-All identities are **local test identities**. No real LEI and no real company names are used.
+All identities are local test identities; the LEIs start with `APTEST` and the entity is fictional.
 
-## Environment (from signify-ts `main`)
-| Piece | Source |
-|---|---|
-| `signify-ts` | npm `signify-ts` 0.4.0 (repo `main` is 0.4.1, unreleased) — https://github.com/WebOfTrust/signify-ts |
-| Test vLEI chain script | `test-integration/singlesig-vlei-issuance.test.ts` (run with `vitest -c vitest.integration.ts`) |
-| docker-compose | repo root `docker-compose.yaml` (+ `config/keria.json`, `config/witness-demo`) |
-| Services | `keria` = `weboftrust/keria:0.4.0` (3901 admin, 3902 http, 3903 boot) · `witness-demo` = `weboftrust/keri:1.2.13` (5642–5644) · `vlei-server` = `gleif/vlei:1.0.3` (7723) |
+## Run
+```bash
+# KERIA + witnesses + vLEI schema server, from the signify-ts repository's docker-compose (0.4.0 images)
+git clone https://github.com/WebOfTrust/signify-ts && cd signify-ts
+# optional: don't publish witness / schema-server ports (lets it run beside other local KERI stacks)
+printf 'services:\n  vlei-server:\n    ports: !reset []\n  witness-demo:\n    ports: !reset []\n' > docker-compose.override.yaml
+docker compose -p agentpassport-vlei up -d --wait
 
-Schema SAIDs used by that script:
+cd <agent-passport>
+npm run chain -w verifier      # build the test chain (idempotent; state in verifier/.state/, git-ignored)
+npm run verify -w verifier     # officer binds the demo credential, presents OOR, verifier checks, records on Monad
+npm test -w verifier           # chain-walking and signature checks against fixtures (no KERIA needed)
+```
+Only KERIA's ports (3901–3903) are used from the host; witnesses and the schema server are reached by
+KERIA over the docker network (`http://witness-demo:5642`, `http://vlei-server:7723`).
 
+Result of the run on 2026-09-23: verification passed; a statement for a different credential and a chain
+from an untrusted root were both rejected; `VLEI_VERIFIED` recorded on Monad testnet — see
+[`demo/public/runs/vlei-latest.json`](../demo/public/runs/vlei-latest.json).
+
+## Schema SAIDs
 | Credential | SAID |
 |---|---|
 | QVI | `EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao` |
 | Legal Entity | `ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY` |
 | OOR Auth | `EKA57bKBKxr_kN7iN5i7lMUxpMG-s19dRcmov1iDxz-E` |
 | OOR | `EBNaNu-M9P5cgrnfl2Fvymy4E_jvxxyjb70PRtiANlJy` |
-| ECR Auth | `EH6ekLjSr8V32WyFbGe1zXjTzFs9PkTYmupJ9H65O14g` |
-| ECR | `EEy9PkikFcANV1l7EHukCeXqrzT1hNZjGlUk7wuMO5jw` |
 
-## Signing and verifying arbitrary data
-- Holder: `const hab = await client.identifiers().get(name); const sigs = await client.manager!.get(hab).sign(bytes, false);`
-- Verifier: current key from `client.keyStates().get(pre)` (`k[0]`), then `new Verfer({ qb64: k0 }).verify(sigRaw, bytes)`;
-  check the role credential's issuee equals that AID and walk its edges (`client.credentials().list()`).
-
-## Minimal path
-1. Clone signify-ts, `npm ci`.
-2. `docker compose up -d --wait`.
-3. Run `singlesig-vlei-issuance.test.ts` to create the test chain.
-4. Add: role AID signs `keccak256(credentialId)`; verify via key state + issuee + edges.
-5. Extract into `verifier/` (Node) that submits `recordOwnerAssurance` with the verifier key.
-
-## Known risks
-- npm 0.4.0 vs repo 0.4.1 API drift → run against the repo's code.
-- Windows: use local URLs (`http://localhost:7723`), not docker-internal hostnames, or OOBI resolution fails.
-- Witness/KERIA receipts can time out → keep the repo's retry helper.
-- signify-ts has no one-call chain verifier (revocation state, edges, schema rules). `gleif/vlei-verifier`
-  is a candidate to evaluate.
+## Notes and limits
+- KERIA notifies a sender of its own IPEX grant; the helpers match grants by SAID and mark the sender's
+  own notification, otherwise an issuer that is also a holder admits the wrong grant.
+- The verifier trusts one configured root AID (the test GLEIF root here); production would use GLEIF's
+  root and the governed QVI list, and check ECR as well as OOR roles.
+- Revocation after recording: the verifier (or anyone watching KERI) should call
+  `recordOwnerAssurance(credentialId, NONE, 0)` when the role credential is revoked; removing a verifier
+  voids all its results on-chain.
+- Design reference: the call sequence follows the public signify-ts integration tests
+  (WebOfTrust/signify-ts, Apache-2.0); the code in `verifier/` is written for this project.

@@ -22,3 +22,4 @@ mcp-server/dist/
 mcp-server/credentials/
 demo/.state/
 demo/dist/
+verifier/.state/

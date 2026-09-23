@@ -5,7 +5,8 @@
   "workspaces": [
     "sdk",
     "mcp-server",
-    "demo"
+    "demo",
+    "verifier"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
