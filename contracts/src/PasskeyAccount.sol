@@ -56,13 +56,14 @@ contract PasskeyAccount is EIP712, IERC1271, IERC721Receiver {
         bytes32 digest = executeDigest(calls, n, deadline);
         if (!WebAuthn.verify(abi.encodePacked(digest), auth, qx, qy)) revert InvalidPasskeySignature();
 
-        nonce = n + 1; // effect before any interaction
+        nonce = n + 1; // effects before any interaction
+        emit Executed(n, calls.length);
 
+        // Batch of owner-signed calls: sending value to, and calling, arbitrary targets is the purpose.
         for (uint256 i; i < calls.length; ++i) {
             (bool ok, bytes memory ret) = calls[i].target.call{value: calls[i].value}(calls[i].data);
             if (!ok) revert CallFailed(i, ret);
         }
-        emit Executed(n, calls.length);
     }
 
     /// @notice The EIP-712 digest the passkey must sign (used verbatim as the WebAuthn challenge).

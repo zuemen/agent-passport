@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build --sizes
+      - run: forge test -vv
+      - name: Fork test against the official ERC-8004 deployment on Monad testnet
+        run: forge test --match-path "test/fork/*" -vv
+        env:
+          MONAD_FORK_URL: https://testnet-rpc.monad.xyz
+        continue-on-error: true # public RPC availability should not fail the build
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: forge build
+        working-directory: contracts
+      - run: npm ci
+      - run: npm run build -w sdk
+      - run: npm test -w sdk
+      - run: npm run build -w mcp-server
+      - run: npm test -w mcp-server
+      - run: npm run build -w demo

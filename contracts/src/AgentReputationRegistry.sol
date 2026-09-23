@@ -135,7 +135,7 @@ contract AgentReputationRegistry {
         bool any1 = bytes(tag1).length == 0;
         bool any2 = bytes(tag2).length == 0;
 
-        int256 sum;
+        int256 sum = 0;
         for (uint256 c; c < clientAddresses.length; ++c) {
             address client = clientAddresses[c];
             uint64 last = _lastIndex[agentId][client];

@@ -121,7 +121,7 @@ contract AgentValidationRegistry {
     {
         bytes32 tagHash = keccak256(bytes(tag));
         bool anyTag = bytes(tag).length == 0;
-        uint256 total;
+        uint256 total = 0;
         bytes32[] storage hashes = _agentValidations[agentId];
         for (uint256 i; i < hashes.length; ++i) {
             ValidationStatus storage s = _validations[hashes[i]];

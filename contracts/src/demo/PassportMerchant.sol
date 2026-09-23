@@ -24,8 +24,10 @@ contract PassportMerchant is PassportGuarded, ReentrancyGuard {
 
     error WrongScope();
     error OrderAlreadyPaid();
+    error ZeroTreasury();
 
     constructor(PassportGate gate, address treasury_) PassportGuarded(gate) {
+        if (treasury_ == address(0)) revert ZeroTreasury();
         treasury = treasury_;
         gate.setVleiRequirement(PAY_SCOPE, true);
     }
@@ -39,6 +41,8 @@ contract PassportMerchant is PassportGuarded, ReentrancyGuard {
         if (intent.scope != PAY_SCOPE) revert WrongScope();
         if (paidOrders[orderId] != bytes32(0)) revert OrderAlreadyPaid();
 
+        // Reserve the order before any external call (checks-effects-interactions).
+        paidOrders[orderId] = bytes32(uint256(1));
         (bytes32 actionId,) = _pullWithPassport(intent, presentation, agentSignature);
         paidOrders[orderId] = actionId;
 
