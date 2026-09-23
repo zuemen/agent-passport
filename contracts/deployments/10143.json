@@ -12,5 +12,6 @@
   "passportMerchant": "0xB66472725612bc98b0fa8262ec15eb2a5184Df10",
   "reputationRegistry": "0x726A215f33bE1Ca996Cf745D4ceee96b2d8f1EE7",
   "validationRegistry": "0x35ab0e062A5BBfB64210Feb08FaE81969669dF76",
-  "vleiVerifier": "0xb2B62161CdA11ae8a695ED571DC80ABCEAB18EF2"
+  "vleiVerifier": "0xb2B62161CdA11ae8a695ED571DC80ABCEAB18EF2",
+  "lookalikeDex": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326"
 }

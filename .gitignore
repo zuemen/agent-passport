@@ -20,3 +20,5 @@ sdk/test/fixtures/bytecode.json
 sdk/dist/
 mcp-server/dist/
 mcp-server/credentials/
+demo/.state/
+demo/dist/

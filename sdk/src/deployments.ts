@@ -16,6 +16,8 @@ export const MONAD_TESTNET = {
   passportMerchant: "0xB66472725612bc98b0fa8262ec15eb2a5184Df10",
   demoUsd: "0x3d3da601b45596FfC7aeB1B9346646e18DB151A8",
   demoWmon: "0x7A8D21f393B73D0371B0273FdFab7fde1A60245b",
+  /** Same contract as passportDex but not an allowed payee in demo credentials (prompt-injection demo). */
+  lookalikeDex: "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326",
   vleiVerifier: "0xb2B62161CdA11ae8a695ED571DC80ABCEAB18EF2",
 } as const satisfies Record<string, Address>;
 

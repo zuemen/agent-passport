@@ -38,11 +38,33 @@ All contracts are source-verified (Sourcify, exact match). Full list: [`contract
 | apUSD (demo token) | [`0x3d3da601b45596FfC7aeB1B9346646e18DB151A8`](https://testnet.monadscan.com/address/0x3d3da601b45596FfC7aeB1B9346646e18DB151A8) |
 | apWMON (demo token) | [`0x7A8D21f393B73D0371B0273FdFab7fde1A60245b`](https://testnet.monadscan.com/address/0x7A8D21f393B73D0371B0273FdFab7fde1A60245b) |
 
+## Live run on Monad testnet
+
+The full storyline, executed by `npm run scenario -w demo` on 2026-09-23 — every step, including the
+rejected ones, is a real transaction (rejections revert on-chain with the gate's reason):
+
+| | Role | Step | Gate reason | Tx |
+|---|---|---|---|---|
+| ✍️ | owner | Owner signs the authorization credential (EIP-712, off-chain) |  | off-chain |
+| ✅ | owner | Anchor the credential hash and disclosure root on Monad |  | [`0x3be21847…`](https://testnet.monadscan.com/tx/0x3be218472c41f4bc068ef8ca341b4ea67ac07bac3b4045cc0b3d06d048ed3ef9) |
+| ✅ | agent | Agent swaps 80 apUSD within its limit |  | [`0x3376e55c…`](https://testnet.monadscan.com/tx/0x3376e55c14c38587731fcbb7fa17891c2815ef2ccb92df542aa3686226dc3617) |
+| ❌ | agent | Agent tries 150 apUSD — over its per-transaction limit | ExceedsPerTxLimit | [`0x73442f47…`](https://testnet.monadscan.com/tx/0x73442f47375e85e7b1d5f337afb3dccf6116f61110f72bf42929ee5783dbfd35) |
+| ❌ | agent | Prompt-injected agent routes 50 apUSD through a look-alike DEX | PayeeNotAllowed | [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) |
+| ❌ | agent | Agent pays a merchant that requires a vLEI-verified owner | OwnerNotVleiVerified | [`0xc1ba95e1…`](https://testnet.monadscan.com/tx/0xc1ba95e169e239ac7184fb9f8349f35cdb4f59b06892109951f4b1ed00562dbf) |
+| ✅ | vlei | vLEI verifier records: owner is a verified legal entity |  | [`0x8abdad6f…`](https://testnet.monadscan.com/tx/0x8abdad6f7141a2dbf19810598878a263cbc246e074ef9b4631fe9c915575e2c3) |
+| ✅ | agent | Same payment after the owner's vLEI is verified |  | [`0xc024a35e…`](https://testnet.monadscan.com/tx/0xc024a35e0bd6973a4aa3e7716f23f0eba114ac8bedc327b117223c8de017517e) |
+| ✅ | owner | Owner revokes the credential |  | [`0xa2b7294d…`](https://testnet.monadscan.com/tx/0xa2b7294daed5ee0f6da1b5367d60731d91614e885324d71f1518a84ce5192075) |
+| ❌ | agent | Agent swaps 10 apUSD after revocation | Revoked | [`0x52350221…`](https://testnet.monadscan.com/tx/0x5235022168c57d93b487c8925954c4c7320964d711fbfeda4ecacba3b0d42fa2) |
+
+Median submit → receipt latency in this run: **827 ms**. The agent wallet held 0 apUSD throughout —
+PassportGate pulls each authorized amount from the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
+
 ## Status
 - [x] M1 — contracts, 87 Foundry tests (unit, revert paths, fuzz, invariant), deployed to Monad testnet
 - [x] M2 — TypeScript SDK (issue, selectively disclose, verify, revoke), 14 tests incl. end-to-end on anvil
 - [x] M3 — MCP server (`present_passport`, `verify_passport`, `check_authorization`), stdio + Streamable HTTP, 6 tests
-- [ ] M4 — demo app, end-to-end scenario on testnet; vLEI owner verification
+- [x] M4 — end-to-end scenario on testnet, demo app (recorded + live mode)
+- [ ] vLEI owner verification service (off-chain, see docs/VLEI_SETUP.md)
 - [ ] M5 — docs, architecture diagram, demo video
 
 ## Design reference

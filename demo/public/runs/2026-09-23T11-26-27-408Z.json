@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "startedAt": "2026-09-23T11:26:27.408Z",
+  "finishedAt": "2026-09-23T11:26:42.640Z",
+  "chainId": 10143,
+  "explorer": "https://testnet.monadscan.com",
+  "contracts": {
+    "identityRegistry": "0x5Df260dec1Ba15368f7fBe338D01a4C764CEAA51",
+    "reputationRegistry": "0x726A215f33bE1Ca996Cf745D4ceee96b2d8f1EE7",
+    "validationRegistry": "0x35ab0e062A5BBfB64210Feb08FaE81969669dF76",
+    "credentialStatusRegistry": "0xD1bC9758F76b6Ea18fbEE824a8Fe8A99c5fcC451",
+    "passportGate": "0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109",
+    "groundedFeedback": "0x39Bacd864318b7a6ea647A5fcE695523d823633f",
+    "passkeyAccountFactory": "0x99B4CECeC7ce4efF9F2686dab74a2dCeb07766D4",
+    "passportDex": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC",
+    "passportMerchant": "0xB66472725612bc98b0fa8262ec15eb2a5184Df10",
+    "demoUsd": "0x3d3da601b45596FfC7aeB1B9346646e18DB151A8",
+    "demoWmon": "0x7A8D21f393B73D0371B0273FdFab7fde1A60245b",
+    "lookalikeDex": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326",
+    "vleiVerifier": "0xb2B62161CdA11ae8a695ED571DC80ABCEAB18EF2"
+  },
+  "owner": "0xA15f0d8e703311c71567E1Fa0f4c4bCA7f595331",
+  "agentWallet": "0xf7e1ad6b0B4D5bD1dE13fEec395B042bC2187ff5",
+  "agentId": "1",
+  "credentialId": "0x9162c07a76fcb3bbcb83be8be5113cba53de92f987d4c12e428c8eb181256743",
+  "verifierView": {
+    "disclosed": [
+      {
+        "name": "scope:dex.swap",
+        "value": "dex.swap"
+      },
+      {
+        "name": "maxPerTx:0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+        "value": "100000000"
+      },
+      {
+        "name": "dailyLimit:0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+        "value": "250000000"
+      },
+      {
+        "name": "payee:0xeaa7574ebfaa724e0935476b4d4041b5cf186dac",
+        "value": "allowed"
+      }
+    ],
+    "hiddenClaimCount": 5
+  },
+  "setup": [
+    {
+      "id": "register",
+      "role": "owner",
+      "title": "Register the agent (ERC-8004 Identity)",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0xc6f6a484e3902f3ebc0a80b9b29cd508c0d778f2ad82ce7777f823c248239739",
+      "block": "65002703",
+      "gasUsed": "159132",
+      "latencyMs": 1550
+    },
+    {
+      "id": "bind-wallet",
+      "role": "owner",
+      "title": "Bind the agent's signing key (signed by the agent)",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x1a75fd550c8533a01f89f0d195c7ab07088375ea6971d431bd80096ce8e3529b",
+      "block": "65002710",
+      "gasUsed": "83635",
+      "latencyMs": 853
+    },
+    {
+      "id": "registration-file",
+      "role": "owner",
+      "title": "Publish the ERC-8004 registration file on-chain (data: URI)",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0xa29e7a8b51db6d61aa19ed35334878b259f775ddd5d6f452dbc9ea2307a7d5d8",
+      "block": "65002714",
+      "gasUsed": "613961",
+      "latencyMs": 851,
+      "detail": {
+        "services": "AgentPassportGate"
+      }
+    },
+    {
+      "id": "faucet",
+      "role": "owner",
+      "title": "Owner takes demo apUSD from the test faucet",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x4c13b6841a4a1046dfb3f805604c058ce9d9471ed218a6840291fa5872f08ee5",
+      "block": "65002716",
+      "gasUsed": "79180",
+      "latencyMs": 426
+    },
+    {
+      "id": "approve",
+      "role": "owner",
+      "title": "Owner lets PassportGate pull funds (the agent holds none)",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x3b96e85393a793f6185785c002d2c88fd7a2678da1aef8574803939b225887a7",
+      "block": "65002718",
+      "gasUsed": "66056",
+      "latencyMs": 836
+    }
+  ],
+  "steps": [
+    {
+      "id": "sign",
+      "role": "owner",
+      "title": "Owner signs the authorization credential (EIP-712, off-chain)",
+      "expect": "offchain",
+      "outcome": "offchain",
+      "detail": {
+        "credentialId": "0x9162c07a76fcb3bbcb83be8be5113cba53de92f987d4c12e428c8eb181256743",
+        "claims": "9",
+        "root": "0xf6115c012d3b25c7af67ff9d0ae55d0fcc209cd7db5c890e552b1e72f45f0918"
+      }
+    },
+    {
+      "id": "anchor",
+      "role": "owner",
+      "title": "Anchor the credential hash and disclosure root on Monad",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x3be218472c41f4bc068ef8ca341b4ea67ac07bac3b4045cc0b3d06d048ed3ef9",
+      "block": "65002722",
+      "gasUsed": "169961",
+      "latencyMs": 865
+    },
+    {
+      "id": "swap-ok",
+      "role": "agent",
+      "title": "Agent swaps 80 apUSD within its limit",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x3376e55c14c38587731fcbb7fa17891c2815ef2ccb92df542aa3686226dc3617",
+      "block": "65002725",
+      "gasUsed": "753763",
+      "latencyMs": 787,
+      "detail": {
+        "amount": "80 apUSD",
+        "relyingParty": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC"
+      }
+    },
+    {
+      "id": "swap-over",
+      "role": "agent",
+      "title": "Agent tries 150 apUSD — over its per-transaction limit",
+      "expect": "rejected",
+      "outcome": "rejected",
+      "reason": "ExceedsPerTxLimit",
+      "txHash": "0x73442f47375e85e7b1d5f337afb3dccf6116f61110f72bf42929ee5783dbfd35",
+      "block": "65002728",
+      "gasUsed": "400000",
+      "latencyMs": 830,
+      "detail": {
+        "amount": "150 apUSD",
+        "relyingParty": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC"
+      }
+    },
+    {
+      "id": "swap-injected",
+      "role": "agent",
+      "title": "Prompt-injected agent routes 50 apUSD through a look-alike DEX",
+      "expect": "rejected",
+      "outcome": "rejected",
+      "reason": "PayeeNotAllowed",
+      "txHash": "0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681",
+      "block": "65002731",
+      "gasUsed": "400000",
+      "latencyMs": 844,
+      "detail": {
+        "amount": "50 apUSD",
+        "relyingParty": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326"
+      }
+    },
+    {
+      "id": "pay-unverified",
+      "role": "agent",
+      "title": "Agent pays a merchant that requires a vLEI-verified owner",
+      "expect": "rejected",
+      "outcome": "rejected",
+      "reason": "OwnerNotVleiVerified",
+      "txHash": "0xc1ba95e169e239ac7184fb9f8349f35cdb4f59b06892109951f4b1ed00562dbf",
+      "block": "65002734",
+      "gasUsed": "400000",
+      "latencyMs": 780,
+      "detail": {
+        "amount": "5 apUSD",
+        "relyingParty": "0xB66472725612bc98b0fa8262ec15eb2a5184Df10"
+      }
+    },
+    {
+      "id": "vlei",
+      "role": "vlei",
+      "title": "vLEI verifier records: owner is a verified legal entity",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0x8abdad6f7141a2dbf19810598878a263cbc246e074ef9b4631fe9c915575e2c3",
+      "block": "65002737",
+      "gasUsed": "120391",
+      "latencyMs": 853,
+      "detail": {
+        "note": "test identity; no real LEI"
+      }
+    },
+    {
+      "id": "pay-verified",
+      "role": "agent",
+      "title": "Same payment after the owner's vLEI is verified",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0xc024a35e0bd6973a4aa3e7716f23f0eba114ac8bedc327b117223c8de017517e",
+      "block": "65002740",
+      "gasUsed": "484742",
+      "latencyMs": 792,
+      "detail": {
+        "amount": "5 apUSD",
+        "relyingParty": "0xB66472725612bc98b0fa8262ec15eb2a5184Df10"
+      }
+    },
+    {
+      "id": "revoke",
+      "role": "owner",
+      "title": "Owner revokes the credential",
+      "expect": "success",
+      "outcome": "success",
+      "txHash": "0xa2b7294daed5ee0f6da1b5367d60731d91614e885324d71f1518a84ce5192075",
+      "block": "65002743",
+      "gasUsed": "45315",
+      "latencyMs": 827
+    },
+    {
+      "id": "swap-after-revoke",
+      "role": "agent",
+      "title": "Agent swaps 10 apUSD after revocation",
+      "expect": "rejected",
+      "outcome": "rejected",
+      "reason": "Revoked",
+      "txHash": "0x5235022168c57d93b487c8925954c4c7320964d711fbfeda4ecacba3b0d42fa2",
+      "block": "65002747",
+      "gasUsed": "400000",
+      "latencyMs": 784,
+      "detail": {
+        "amount": "10 apUSD",
+        "relyingParty": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC"
+      }
+    }
+  ],
+  "metrics": {
+    "medianLatencyMs": 827,
+    "revokeBlock": "65002743",
+    "firstRejectedAfterRevokeBlock": "65002747",
+    "blocksFromRevokeToRejection": 4,
+    "successfulSwapGas": "753763"
+  }
+}
