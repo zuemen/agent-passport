@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunLog, StepLog } from "../scenario/types";
+import { PasskeyPanel } from "./PasskeyPanel";
 import {
   C,
   explorerAddr,
@@ -286,6 +287,7 @@ export default function App() {
                   <button className="btn ghost" disabled={!!busy} onClick={() => doLive("vlei")}>{busy === "vlei" ? "Recording…" : "vLEI verifier: record result"}</button>
                 </div>
               )}
+              {live && <PasskeyPanel />}
             </section>
           )}
 

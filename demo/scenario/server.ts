@@ -1,6 +1,8 @@
-import { createServer } from "node:http";
-import { MONAD_TESTNET } from "@agent-passport/sdk";
+import { createServer, type IncomingMessage } from "node:http";
+import { toHex, type Hex } from "viem";
+import { MONAD_TESTNET, type WebAuthnAssertion } from "@agent-passport/sdk";
 import { Scenario } from "./scenario.js";
+import { PasskeyOwnerFlow } from "./passkeyOwner.js";
 import type { StepLog } from "./types.js";
 
 /**
@@ -34,9 +36,43 @@ const steps: Record<string, (s: Scenario) => Promise<unknown>> = {
   "swap-after-revoke": (s) => s.swap("swap-after-revoke", "Agent swaps 10 apUSD after revocation", 10, { expect: "rejected" }),
 };
 
+// ------------------------------------------------------------------ passkey owner (browser passkey)
+// The flow runs here; whenever the owner must approve, it publishes a challenge that the app signs
+// with the user's real passkey (navigator.credentials.get) and posts back.
+let pk: { flow: PasskeyOwnerFlow; qx: Hex; qy: Hex } | undefined;
+let pending: { challenge: Hex; purpose: string; resolve: (a: WebAuthnAssertion) => void; reject: (e: Error) => void } | undefined;
+let job: { action: string; status: "running" | "done" | "error"; error?: string } | undefined;
+
+const remoteSign = (challenge: Uint8Array, purpose: string) =>
+  new Promise<WebAuthnAssertion>((resolve, reject) => {
+    pending = { challenge: toHex(challenge), purpose, resolve, reject };
+    setTimeout(() => {
+      if (pending?.resolve === resolve) {
+        pending = undefined;
+        reject(new Error("passkey approval timed out"));
+      }
+    }, 180_000);
+  });
+
+const pkActions: Record<string, (f: PasskeyOwnerFlow) => Promise<unknown>> = {
+  setup: (f) => f.setup(),
+  swap: (f) => f.swap("Agent swaps 10 apUSD from the passkey owner's funds", 10_000_000n),
+  revoke: (f) => f.revoke(),
+  "swap-after-revoke": (f) => f.swap("Agent swaps 10 apUSD after the passkey revocation", 10_000_000n),
+};
+
+async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(c as Buffer);
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+}
+
+const b64 = (s: unknown) => new Uint8Array(Buffer.from(String(s), "base64url"));
+
 const cors = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-headers": "content-type",
   "content-type": "application/json",
 };
 
@@ -54,6 +90,50 @@ createServer(async (req, res) => {
         report: scenario.held && scenario.agentId !== undefined ? scenario.report(new Date()) : undefined,
       }),
     );
+  }
+
+  if (url.pathname.startsWith("/api/passkey/")) {
+    const send = (code: number, body: unknown) => void res.writeHead(code, cors).end(JSON.stringify(body));
+    try {
+      if (req.method === "GET" && url.pathname === "/api/passkey/status") {
+        return send(200, {
+          job,
+          pending: pending ? { challenge: pending.challenge, purpose: pending.purpose } : null,
+          account: pk?.flow.account,
+          agentId: pk?.flow.agentId?.toString(),
+          credentialId: pk?.flow.held?.credentialId,
+          steps: pk?.flow.steps ?? [],
+        });
+      }
+      if (req.method === "POST" && url.pathname === "/api/passkey/start") {
+        const body = await readJson(req);
+        const action = String(body.action);
+        if (!pkActions[action]) return send(400, { error: "unknown action" });
+        if (job?.status === "running" || busy) return send(409, { error: "busy" });
+        const qx = body.qx as Hex | undefined;
+        const qy = body.qy as Hex | undefined;
+        if (qx && qy && (!pk || pk.qx !== qx || pk.qy !== qy)) pk = { flow: new PasskeyOwnerFlow(qx, qy, remoteSign), qx, qy };
+        if (!pk) return send(400, { error: "create a passkey first" });
+        const flow = pk.flow;
+        job = { action, status: "running" };
+        pkActions[action](flow).then(
+          () => (job = { action, status: "done" }),
+          (e: Error) => (job = { action, status: "error", error: e.message }),
+        );
+        return send(202, { started: action });
+      }
+      if (req.method === "POST" && url.pathname === "/api/passkey/assertion") {
+        if (!pending) return send(409, { error: "nothing to approve" });
+        const body = await readJson(req);
+        const p = pending;
+        pending = undefined;
+        p.resolve({ authenticatorData: b64(body.authenticatorData), clientDataJSON: b64(body.clientDataJSON), signature: b64(body.signature) });
+        return send(200, { ok: true });
+      }
+      return send(404, { error: "not found" });
+    } catch (e) {
+      return send(500, { error: (e as Error).message });
+    }
   }
 
   const m = url.pathname.match(/^\/api\/step\/([a-z-]+)$/);
