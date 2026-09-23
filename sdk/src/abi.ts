@@ -5240,6 +5240,11 @@ export const passportMerchantAbi = [
     "type": "error",
     "name": "WrongScope",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroTreasury",
+    "inputs": []
   }
 ] as const;
 

@@ -59,14 +59,16 @@ export async function verifyPresentation(
   const id = credentialIdOf(auth, domain);
   if (id !== p.credentialId || p.vc.id !== `urn:agent-passport:${id}`) errors.push("credential id mismatch");
 
-  const sigOk = await verifyTypedData({
+  const typed = {
     address: auth.issuer,
     domain,
     types: AUTHORIZATION_TYPES,
-    primaryType: "AgentAuthorization",
+    primaryType: "AgentAuthorization" as const,
     message: auth,
     signature: p.vc.proof.proofValue,
-  });
+  };
+  // With a client, contract issuers (e.g. a passkey-controlled PasskeyAccount) are checked via ERC-1271.
+  const sigOk = opts.client ? await opts.client.verifyTypedData(typed).catch(() => false) : await verifyTypedData(typed);
   if (!sigOk) errors.push("issuer signature invalid");
 
   const revealed: Record<string, string> = {};

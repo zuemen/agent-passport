@@ -67,6 +67,20 @@ last receipt ([block 65043995](https://testnet.monadscan.com/block/65043995)). P
 agent's actions never queue behind each other at the protocol level; this is what makes checking *every*
 action practical. Raw data: [`demo/public/runs/bench-latest.json`](demo/public/runs/bench-latest.json).
 
+### Passkey owner (no seed phrase)
+`npm run passkey -w demo`: the owner is a `PasskeyAccount` ([`0x1722993f…`](https://testnet.monadscan.com/address/0x1722993fa8E14733977214c4D886E789Ae8FE637)) controlled by a
+P-256 passkey; signatures are verified on-chain through Monad's P-256 precompile (`0x0100`, EIP-7951) and a
+relayer pays the gas. The mandate is signed by the passkey (ERC-1271 issuer) and one prompt performs the
+whole on-chain setup:
+
+| | Step | Gate reason | Tx |
+|---|---|---|---|
+| ✍️ | Passkey signs the mandate (EIP-712 digest as WebAuthn challenge, ERC-1271 issuer) |  | off-chain |
+| ✅ | One passkey prompt: register agent, bind key, fund, approve gate, anchor mandate |  | [`0xca381aa4…`](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e) |
+| ✅ | Agent swaps 10 apUSD from the passkey owner's funds |  | [`0x17fcad9c…`](https://testnet.monadscan.com/tx/0x17fcad9ceb8e7e98c033db71acec85a6e17fc221e2c6ef3a2c66e028b48a6179) |
+| ✅ | Passkey prompt: revoke the mandate |  | [`0x1706dc4d…`](https://testnet.monadscan.com/tx/0x1706dc4d4dcc94e1831abe69c4407509d012625a4c644a86b9b5f7a120b6406f) |
+| ❌ | Agent swaps 10 apUSD after the passkey revocation | Revoked | [`0x9706790f…`](https://testnet.monadscan.com/tx/0x9706790fbd8f9cab46fdf4fc9f2025f65bcff3cc66ba67cc8ae1265a9b270cbb) |
+
 ## Status
 - [x] M1 — contracts, 87 Foundry tests (unit, revert paths, fuzz, invariant), deployed to Monad testnet
 - [x] M2 — TypeScript SDK (issue, selectively disclose, verify, revoke), 14 tests incl. end-to-end on anvil

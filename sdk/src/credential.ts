@@ -170,10 +170,11 @@ export function credentialIdOf(auth: AgentAuthorization, domain: Eip712Domain): 
   return hashTypedData({ domain, types: AUTHORIZATION_TYPES, primaryType: "AgentAuthorization", message: auth });
 }
 
-type Signer = LocalAccount | WalletClient;
+/** An EOA (local account or wallet client), or any typed-data signer such as `passkeyTypedDataSigner`. */
+type Signer = LocalAccount | WalletClient | { address: Address; type: "local"; signTypedData: (args: never) => Promise<Hex> };
 
 async function signTyped(signer: Signer, args: Parameters<typeof hashTypedData>[0]): Promise<Hex> {
-  if ("type" in signer && signer.type === "local") return (signer as LocalAccount).signTypedData(args as never);
+  if ("type" in signer && signer.type === "local") return (signer as { signTypedData: (a: never) => Promise<Hex> }).signTypedData(args as never);
   const wallet = signer as WalletClient;
   if (!wallet.account) throw new Error("wallet client has no account");
   return wallet.signTypedData({ ...(args as object), account: wallet.account } as never);

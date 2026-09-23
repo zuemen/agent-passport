@@ -1,0 +1,36 @@
+{
+  "at": "2026-09-23T15:02:53.102Z",
+  "owner": "0x1722993fa8E14733977214c4D886E789Ae8FE637",
+  "agentId": "4",
+  "credentialId": "0x48af41d45689923474aaf8bd40b86093cb55ec4b2ff0f5ae237c317425b3079f",
+  "steps": [
+    {
+      "step": "Passkey signs the mandate (EIP-712 digest as WebAuthn challenge, ERC-1271 issuer)"
+    },
+    {
+      "step": "One passkey prompt: register agent, bind key, fund, approve gate, anchor mandate",
+      "tx": "0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e",
+      "block": "65044998",
+      "status": "success"
+    },
+    {
+      "step": "Agent swaps 10 apUSD from the passkey owner's funds",
+      "tx": "0x17fcad9ceb8e7e98c033db71acec85a6e17fc221e2c6ef3a2c66e028b48a6179",
+      "block": "65045001",
+      "status": "success"
+    },
+    {
+      "step": "Passkey prompt: revoke the mandate",
+      "tx": "0x1706dc4d4dcc94e1831abe69c4407509d012625a4c644a86b9b5f7a120b6406f",
+      "block": "65045004",
+      "status": "success"
+    },
+    {
+      "step": "Agent swaps 10 apUSD after the passkey revocation",
+      "tx": "0x9706790fbd8f9cab46fdf4fc9f2025f65bcff3cc66ba67cc8ae1265a9b270cbb",
+      "block": "65045007",
+      "status": "reverted",
+      "reason": "Revoked"
+    }
+  ]
+}

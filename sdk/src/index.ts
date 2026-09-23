@@ -7,3 +7,4 @@ export * from "./chain.js";
 export * from "./deployments.js";
 export * from "./serialize.js";
 export * from "./registration.js";
+export * from "./passkey.js";
