@@ -44,7 +44,8 @@ wallet). Credentials are files written with `serializeCredential` from the SDK.
 | Env | Default |
 |---|---|
 | `MONAD_RPC_URL` | `https://testnet-rpc.monad.xyz` |
-| `PASSPORT_GATE`, `PASSPORT_STATUS_REGISTRY` | Monad testnet deployment |
+| `PASSPORT_DEPLOYMENT` | Monad testnet. A deployment record (`contracts/deployments/<chainId>.json`) for another chain, such as the local chain of `npm run local -w demo`; set `MONAD_RPC_URL` to that chain's RPC |
+| `PASSPORT_GATE`, `PASSPORT_STATUS_REGISTRY` | from the deployment |
 | `PASSPORT_DEFAULT_ASSET` | demo apUSD (the relying party defaults per scope: PassportDex for `dex.swap`, PassportMerchant for `commerce.pay`) |
 
 Example client config:
@@ -52,6 +53,15 @@ Example client config:
 { "mcpServers": { "agent-passport": { "command": "node", "args": ["<repo>/mcp-server/dist/index.js"],
   "env": { "PASSPORT_CREDENTIALS": "<repo>/mcp-server/credentials" } } } }
 ```
+
+### On a local chain — no keys, no MON
+`npm run local -w demo` starts a local chain with every contract, and prints a ready `claude mcp add
+agent-passport-local …` line for Claude Code: this server with `PASSPORT_DEPLOYMENT`, the local RPC, the local
+credentials directory and anvil's public development key for the demo agent. After Owner → Sign & anchor in the
+app, the agent in Claude Code can present its passport, check an action and execute it on that chain.
+`npm run demo-run -- --local` drives the same thing with a scripted client (no LLM), and `npm run scenario:local -w demo`
+runs it after the storyline: a swap within the mandate, an injected payment the mandate stops before sending, the
+same payment forced on-chain and reverted with `PayeeNotAllowed`, and a hidden claim the policy refuses.
 
 ## Discovery
 Put the HTTP endpoint in the agent's ERC-8004 registration file (`buildRegistrationFile` + `toDataUri`

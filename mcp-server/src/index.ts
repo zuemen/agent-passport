@@ -16,7 +16,8 @@ import { config, startHttp } from "./http.js";
  *     set, and then every request must carry `Authorization: Bearer <token>`. Without a token the
  *     HTTP server is verifier-only (verify_passport), which is safe to expose publicly.
  *
- * Env: MONAD_RPC_URL · PASSPORT_CREDENTIALS · PASSPORT_DISCLOSURE_POLICY · PASSPORT_AGENT_KEY (enables
+ * Env: MONAD_RPC_URL · PASSPORT_DEPLOYMENT (a deployment record other than Monad testnet, e.g. the local
+ * chain of `npm run local -w demo`) · PASSPORT_CREDENTIALS · PASSPORT_DISCLOSURE_POLICY · PASSPORT_AGENT_KEY (enables
  * execute_action) · PASSPORT_GATE · PASSPORT_STATUS_REGISTRY · PASSPORT_IDENTITY_REGISTRY ·
  * PASSPORT_DEFAULT_ASSET · PASSPORT_HTTP_HOST · PASSPORT_HTTP_TOKEN · PASSPORT_ALLOWED_HOSTS ·
  * PASSPORT_ALLOWED_ORIGINS (comma-separated)

@@ -33,7 +33,8 @@ export interface ActionContext {
   gate: Address;
   identityRegistry: Address;
   agent: LocalAccount;
-  explorer: string;
+  /** Block explorer base URL, if the chain has one. */
+  explorer?: string;
 }
 
 export interface ActionResult {
@@ -124,7 +125,7 @@ export async function executeAction(
     // The on-chain reason (from the transaction's trace or a replay); if it cannot be read, never claim "Ok".
     reason: ok ? "Ok" : ((await revertReasonOf(ctx.client, hash).catch(() => undefined)) ?? (pre.authorized ? "Reverted" : pre.reason)),
     txHash: hash,
-    txUrl: `${ctx.explorer}/tx/${hash}`,
+    txUrl: ctx.explorer ? `${ctx.explorer}/tx/${hash}` : undefined,
     status: receipt.status,
     block: receipt.blockNumber.toString(),
   };

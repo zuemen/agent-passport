@@ -9,20 +9,30 @@
  *
  * --dry stops after the read-only checks, before anything is sent.
  *
- * Output: demo/public/runs/mcp-latest.json. With --live <file>, each step is also appended to <file> as it
- * happens (for a live log view).
+ * --local runs against the local chain of `npm run local -w demo` instead (anvil's public development accounts,
+ * no keys, no MON): after Owner → Sign & anchor in the app, or after `npm run scenario:local -w demo`, which runs
+ * this itself. It reads and writes only demo/.state-local/.
+ *
+ * Output: demo/public/runs/mcp-latest.json (--local: demo/.state-local/runs/mcp-local.json). With --live <file>,
+ * each step is also appended to <file> as it happens (for a live log view). Exits non-zero if a step does not
+ * end as the story expects.
  */
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { MONAD_TESTNET as C } from "@agent-passport/sdk";
+import { MONAD_TESTNET } from "@agent-passport/sdk";
+import { toHex } from "viem";
+import { mnemonicToAccount } from "viem/accounts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");
 const liveArg = process.argv.indexOf("--live");
 const liveFile = liveArg > 0 ? process.argv[liveArg + 1] : undefined;
+const local = process.argv.includes("--local");
+const localState = join(repoRoot, "demo", ".state-local");
+const C = local ? JSON.parse(readFileSync(join(repoRoot, "contracts", "deployments", "31337.json"), "utf8")) : MONAD_TESTNET;
 
 function readEnv() {
   const file = join(repoRoot, ".env");
@@ -34,27 +44,32 @@ function readEnv() {
   }
   return out;
 }
-const dotenv = readEnv();
-const agentKey = process.env.DEMO_AGENT_KEY || dotenv.DEMO_AGENT_KEY;
+const dotenv = local ? {} : readEnv();
+// Local: the demo's agent is anvil's public development account #2 (see demo/scenario/env.ts).
+const ANVIL_MNEMONIC = "test test test test test test test test test test test junk";
+const agentKey = local
+  ? toHex(mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 2 }).getHdKey().privateKey)
+  : process.env.DEMO_AGENT_KEY || dotenv.DEMO_AGENT_KEY;
 if (!agentKey) throw new Error("DEMO_AGENT_KEY is not set (see .env.example)");
+const credentialsDir = local ? join(localState, "credentials") : join(repoRoot, "mcp-server", "credentials");
 
 /** The agent to act as: DEMO_AGENT_ID, else the scenario's agent, else the newest credential in mcp-server/credentials. */
 function agentId() {
   if (process.env.DEMO_AGENT_ID) return process.env.DEMO_AGENT_ID;
-  const dir = join(repoRoot, "mcp-server", "credentials");
-  const state = join(repoRoot, "demo", ".state", "agent.json");
+  const dir = credentialsDir;
+  const state = join(local ? localState : join(repoRoot, "demo", ".state"), "agent.json");
   if (existsSync(state)) {
     const own = String(JSON.parse(readFileSync(state, "utf8")).agentId);
     if (existsSync(join(dir, `agent-${own}.json`))) return own;
   }
   const files = existsSync(dir) ? readdirSync(dir).filter((f) => /^agent-\d+\.json$/.test(f)) : [];
   const newest = files.sort((a, b) => statSync(join(dir, b)).mtimeMs - statSync(join(dir, a)).mtimeMs)[0];
-  if (!newest) throw new Error("no credential in mcp-server/credentials — run npm run scenario -w demo first");
+  if (!newest) throw new Error(`no credential in ${dir} — issue a mandate first (${local ? "npm run local -w demo, Owner → Sign & anchor" : "npm run scenario -w demo"})`);
   return newest.match(/^agent-(\d+)\.json$/)[1];
 }
 const AGENT_ID = agentId();
 const USD = (n) => String(BigInt(Math.round(n * 1e6)));
-const run = { version: 1, startedAt: new Date().toISOString(), chainId: 10143, client: "scripted MCP client (no LLM)", agentId: AGENT_ID, steps: [] };
+const run = { version: 1, startedAt: new Date().toISOString(), chainId: local ? 31337 : 10143, client: "scripted MCP client (no LLM)", agentId: AGENT_ID, steps: [] };
 
 /** First line only, URLs masked: an RPC URL can carry an API key, and these logs are published. */
 const redact = (text = "") => text.split("\n")[0].replace(/https?:\/\/\S+/g, "<url>");
@@ -67,15 +82,18 @@ function record(step) {
   console.log(`${step.id.padEnd(18)} ${step.tool.padEnd(20)} ${summary}${r.txHash ? `  ${r.txHash}` : ""}`);
 }
 
-const rpcUrl = process.env.MONAD_TESTNET_RPC_URL || dotenv.MONAD_TESTNET_RPC_URL;
+const rpcUrl = local
+  ? process.env.LOCAL_RPC_URL || "http://127.0.0.1:18549"
+  : process.env.MONAD_TESTNET_RPC_URL || dotenv.MONAD_TESTNET_RPC_URL;
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [join(repoRoot, "mcp-server", "dist", "index.js")],
   env: {
     ...getDefaultEnvironment(),
-    PASSPORT_CREDENTIALS: join(repoRoot, "mcp-server", "credentials"),
+    PASSPORT_CREDENTIALS: credentialsDir,
     PASSPORT_AGENT_KEY: agentKey,
     ...(rpcUrl ? { MONAD_RPC_URL: rpcUrl } : {}),
+    ...(local ? { PASSPORT_DEPLOYMENT: join(repoRoot, "contracts", "deployments", "31337.json") } : {}),
   },
   stderr: "inherit",
 });
@@ -132,7 +150,24 @@ try {
   if (liveFile) writeFileSync(liveFile, JSON.stringify(run, null, 2));
   // Only a complete run that sent something replaces the recorded one (not --dry, a failed pre-check, or a crash).
   if (finished && run.steps.some((s) => s.result?.txHash)) {
-    writeFileSync(join(repoRoot, "demo", "public", "runs", "mcp-latest.json"), JSON.stringify(run, null, 2) + "\n");
+    const out = local ? join(localState, "runs", "mcp-local.json") : join(repoRoot, "demo", "public", "runs", "mcp-latest.json");
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, JSON.stringify(run, null, 2) + "\n");
   }
   await client.close();
+}
+
+// The story's expected ends: the swap goes through, the injected payment is stopped by the mandate before it is
+// sent, the forced one reverts on-chain with PayeeNotAllowed, and the hidden claim stays hidden.
+const at = (id) => run.steps.find((s) => s.id === id);
+const surprises = [
+  at("swap")?.result?.executed === true || "swap not executed",
+  at("injected")?.result?.stoppedBy === "mandate" || "injected payment not stopped by the mandate",
+  (at("injected-forced")?.result?.status === "reverted" && at("injected-forced")?.result?.reason === "PayeeNotAllowed") ||
+    "forced payment did not revert with PayeeNotAllowed",
+  !at("disclose-hidden") || Boolean(at("disclose-hidden").error) || "hidden claim was disclosed",
+].filter((x) => x !== true);
+if (surprises.length) {
+  console.error(`✗ ${surprises.join("; ")}`);
+  process.exitCode = 1;
 }

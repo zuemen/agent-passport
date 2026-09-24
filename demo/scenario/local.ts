@@ -22,6 +22,7 @@ const port = Number(new URL(LOCAL_RPC).port);
 const apiPort = Number(process.env.DEMO_API_PORT ?? 18790);
 const api = `http://127.0.0.1:${apiPort}`;
 const appPort = 15173;
+const mcpServer = join(repoRoot, "mcp-server", "dist", "index.js");
 const children: ChildProcess[] = [];
 let anvilErrors = "";
 let stopping = false;
@@ -163,6 +164,14 @@ try {
       const pk = spawnSync("npx tsx scenario/passkey.ts", { cwd: demo, env: childEnv(), shell: true, stdio: "inherit" });
       process.exitCode = pk.status ?? 1;
     }
+    if (process.exitCode === 0 && !existsSync(mcpServer)) {
+      console.log("\n(skipped the MCP part: run `npm run build -w mcp-server` first)");
+    } else if (process.exitCode === 0) {
+      console.log("\n▸ the agent through its MCP server: a fresh mandate, then scripted MCP calls (mcp-server/scripts/demo-run.mjs)\n");
+      const m = spawnSync("npx tsx scenario/mandate.ts", { cwd: demo, env: childEnv(), shell: true, stdio: "inherit" });
+      const mcp = m.status === 0 ? spawnSync("node scripts/demo-run.mjs --local", { cwd: join(repoRoot, "mcp-server"), env: childEnv(), shell: true, stdio: "inherit" }) : m;
+      process.exitCode = mcp.status ?? 1;
+    }
   } else {
     console.log("▸ starting the live demo API and the app");
     start("api", "npx tsx scenario/server.ts", demo, childEnv({ DEMO_API_PORT: String(apiPort) }));
@@ -185,6 +194,15 @@ try {
       }),
     );
     console.log(`\n  Open http://localhost:${appPort} — the chip says “Live · local chain”. Owner → Sign & anchor, then the Agent actions.`);
+    // An MCP client (Claude Code here) can drive the agent on this chain once a mandate is anchored. The agent key
+    // is anvil's public development account #2, derived here and printed only to this terminal.
+    const agentKey = toHex(mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 2 }).getHdKey().privateKey!);
+    const q = (s: string) => (/\s/.test(s) ? `"${s}"` : s);
+    console.log("  MCP: after Owner → Sign & anchor, give an MCP client the agent on this chain, e.g. Claude Code:");
+    console.log(
+      `    claude mcp add agent-passport-local -e PASSPORT_DEPLOYMENT=${q(localDeploymentFile)} -e MONAD_RPC_URL=${LOCAL_RPC} ` +
+        `-e PASSPORT_CREDENTIALS=${q(join(stateDir, "credentials"))} -e PASSPORT_AGENT_KEY=${agentKey} -- node ${q(mcpServer)}`,
+    );
     console.log("  Ctrl+C stops anvil, the API and the app.\n");
     // Runs until Ctrl+C, or until one of the three stops on its own; then the others are stopped too.
     if (!exitReason) await new Promise<void>((r) => (wake = r));

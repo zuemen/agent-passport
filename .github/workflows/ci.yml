@@ -74,6 +74,7 @@ jobs:
         working-directory: contracts
       - run: npm ci
       - run: npm run build -w sdk
+      - run: npm run build -w mcp-server
       - run: npm run scenario:local -w demo
 
   mutants:

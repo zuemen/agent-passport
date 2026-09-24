@@ -191,7 +191,7 @@ The same call without `onlyTopCall` for the passkey setup
 `STATICCALL` to `0x…0100` — Monad's P-256 precompile — with `"gasUsed":"0x1af4"` (6,900) and output `…01` (valid).
 
 **With [Foundry](https://getfoundry.sh) and Node** — clone with `git clone --recursive` (Windows: first
-`git config --global core.longpaths true`), then run `cd contracts && forge build && cd .. && npm install && npm run build -w sdk`
+`git config --global core.longpaths true`), then run `cd contracts && forge build && cd .. && npm install && npm run build -w sdk && npm run build -w mcp-server`
 (the SDK takes its ABIs from the Foundry build; the first via-IR compile takes a few minutes). None of these sends a
 testnet transaction; each was run that way on a fresh clone:
 
@@ -199,8 +199,9 @@ testnet transaction; each was run that way on a fresh clone:
 |---|---|---|
 | Why a recorded agent action was refused on Monad testnet | `npm run why -w demo -- 0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681` | `NotAuthorized(PayeeNotAllowed)` — the prompt-injected payment |
 | The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (PowerShell: set `$env:MONAD_FORK_URL="https://testnet-rpc.monad.xyz"` first; Foundry 1.7 and older have no Monad network: leave out `--network monad`) | `3 tests passed` (official Identity and Reputation) |
-| The whole storyline on your machine | `npm run scenario:local -w demo` | `anvil … (chain 31337, Monad EVM rules)` with Foundry 1.8+; 5 setup transactions, then the storyline's 9 with refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked`; then a passkey owner: setup, a swap, revocation, a swap refused with `Revoked` |
+| The whole storyline on your machine | `npm run scenario:local -w demo` | `anvil … (chain 31337, Monad EVM rules)` with Foundry 1.8+; 5 setup transactions, then the storyline's 9 with refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked`; then a passkey owner: setup, a swap, revocation, a swap refused with `Revoked`; then the agent through its MCP server: a swap, an injected payment stopped by the mandate, the same forced on-chain and reverted with `PayeeNotAllowed` |
 | Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions; in the Owner tab, the passkey panel with your own device's passkey |
+| Your own AI agent, through MCP | `npm run local -w demo` prints a `claude mcp add agent-passport-local …` line; run it after Owner → Sign & anchor | Claude Code gets the agent's four tools on the local chain — the same server `scenario:local` drives with a scripted client ([details](mcp-server/README.md#on-a-local-chain--no-keys-no-mon)) |
 | The tests notice a missing rule | `cd contracts && bash script/mutants.sh` (about 8 minutes) | 12 mutants killed, the control survives ([table](docs/BENCHMARKS.md#mutation-check)) |
 | Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | forge: `97 tests passed, 0 failed, 1 skipped` on Foundry 1.8 (it prints the 3 invariants as one test, so 99 on 1.7; the skip is the fork suite without `MONAD_FORK_URL`) · 22 · 20 · 6 passed |
 

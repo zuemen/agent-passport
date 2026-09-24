@@ -1,7 +1,8 @@
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createPublicClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, defineChain, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { MONAD_TESTNET, monadTestnet } from "@agent-passport/sdk";
 import { createPassportServer, type PassportServerConfig } from "./server.js";
@@ -10,7 +11,23 @@ import { loadPolicy } from "./policy.js";
 
 const env = process.env;
 const rpcUrl = env.MONAD_RPC_URL;
-const client = createPublicClient({ chain: monadTestnet, transport: http(rpcUrl) });
+// PASSPORT_DEPLOYMENT: another deployment record (contracts/deployments/<chainId>.json), such as the local chain
+// that `npm run local -w demo` starts; MONAD_RPC_URL then points at that chain. Default: Monad testnet.
+const deployment: typeof MONAD_TESTNET & { chainId?: number } = env.PASSPORT_DEPLOYMENT
+  ? JSON.parse(readFileSync(env.PASSPORT_DEPLOYMENT, "utf8"))
+  : MONAD_TESTNET;
+const chainId = deployment.chainId ?? monadTestnet.id;
+const onTestnet = chainId === monadTestnet.id;
+if (!onTestnet && !rpcUrl) throw new Error(`PASSPORT_DEPLOYMENT is chain ${chainId}: set MONAD_RPC_URL to its RPC`);
+const chain = onTestnet
+  ? monadTestnet
+  : defineChain({
+      id: chainId,
+      name: `Chain ${chainId}`,
+      nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+      rpcUrls: { default: { http: [rpcUrl!] } },
+    });
+const client = createPublicClient({ chain, transport: http(rpcUrl) });
 const list = (v?: string) => (v ? v.split(",").map((s) => s.trim()).filter(Boolean) : []);
 
 export function config(agentMode: boolean): PassportServerConfig {
@@ -18,12 +35,12 @@ export function config(agentMode: boolean): PassportServerConfig {
   const agentKey = env.PASSPORT_AGENT_KEY as Hex | undefined;
   return {
     client: client as never,
-    gate: (env.PASSPORT_GATE ?? MONAD_TESTNET.passportGate) as Address,
-    statusRegistry: (env.PASSPORT_STATUS_REGISTRY ?? MONAD_TESTNET.credentialStatusRegistry) as Address,
+    gate: (env.PASSPORT_GATE ?? deployment.passportGate) as Address,
+    statusRegistry: (env.PASSPORT_STATUS_REGISTRY ?? deployment.credentialStatusRegistry) as Address,
     defaults: {
-      asset: (env.PASSPORT_DEFAULT_ASSET ?? MONAD_TESTNET.demoUsd) as Address,
-      relyingParty: MONAD_TESTNET.passportDex,
-      relyingParties: { "dex.swap": MONAD_TESTNET.passportDex, "commerce.pay": MONAD_TESTNET.passportMerchant },
+      asset: (env.PASSPORT_DEFAULT_ASSET ?? deployment.demoUsd) as Address,
+      relyingParty: deployment.passportDex,
+      relyingParties: { "dex.swap": deployment.passportDex, "commerce.pay": deployment.passportMerchant },
     },
     store,
     policy: loadPolicy(env.PASSPORT_DISCLOSURE_POLICY),
@@ -31,12 +48,12 @@ export function config(agentMode: boolean): PassportServerConfig {
       store && agentKey
         ? {
             client: client as never,
-            chain: monadTestnet,
+            chain,
             rpcUrl,
-            gate: (env.PASSPORT_GATE ?? MONAD_TESTNET.passportGate) as Address,
-            identityRegistry: (env.PASSPORT_IDENTITY_REGISTRY ?? MONAD_TESTNET.identityRegistry) as Address,
+            gate: (env.PASSPORT_GATE ?? deployment.passportGate) as Address,
+            identityRegistry: (env.PASSPORT_IDENTITY_REGISTRY ?? deployment.identityRegistry) as Address,
             agent: privateKeyToAccount(agentKey),
-            explorer: "https://testnet.monadscan.com",
+            explorer: onTestnet ? "https://testnet.monadscan.com" : undefined,
           }
         : undefined,
   };
