@@ -23,6 +23,8 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
 - **146 tests** (98 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
   Identity and Reputation registries on Monad; CI on every push (its fork-test step tolerates public-RPC outages).
+- **Check it yourself with no keys and no MON** — decode the refusals, fork the official registries, or run the
+  whole demo on a local chain: [five commands](#verify-it-yourself--no-keys-no-mon).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 
@@ -170,6 +172,18 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 | Wallet permissions (e.g. ERC-7715 / 7710) | Limit what a key may spend from one wallet. They don't give a counterparty verifiable, privacy-preserving proof of who stands behind an agent. Complementary. |
 | Google AP2 mandates | [AP2 v0.2](https://ap2-protocol.org/ap2/payment_mandate/) carries user mandates as SD-JWT credentials; its open Payment Mandate constraints (amount range, budget, allowed payees, validity) mirror our claims, and its budget needs a record of past spending. Agent Passport keeps that record — and revocation — on Monad. Aligned in semantics, not an AP2 implementation. |
 
+## Verify it yourself — no keys, no MON
+From a fresh clone, after `npm install && npm run build -w sdk` (and [Foundry](https://getfoundry.sh) for the
+`forge` and local-chain lines), none of these sends a testnet transaction:
+
+| What you check | Command | You should see |
+|---|---|---|
+| Why a recorded agent action was refused on Monad testnet | `npm run why -w demo -- 0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681` | `NotAuthorized(PayeeNotAllowed)` — the prompt-injected payment |
+| The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` | 3 passed (official Identity and Reputation) |
+| The whole storyline on your machine | `npm run scenario:local -w demo` | 9 steps; refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked` |
+| Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions |
+| Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | 98 + 22 + 20 + 6 passed |
+
 ## Quickstart
 ```bash
 # Windows: first run `git config --global core.longpaths true` (OpenZeppelin's nested test submodules have long paths)
@@ -313,7 +327,7 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 - [x] Contracts — 98 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, 200 random tamperings of a presentation
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
-- [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
+- [x] Demo — testnet scenario, local-chain mode (no keys, no MON; in CI), concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
 - [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))
 - [ ] Demo video
