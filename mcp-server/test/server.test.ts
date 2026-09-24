@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { Address, Hex } from "viem";
+import { toHex, type Address, type Hex } from "viem";
 import {
   agentIdentityRegistryAbi,
   anchorCredential,
@@ -197,6 +197,15 @@ describe("MCP tools (agent mode)", () => {
   it("execute_action with forceSubmit → the gate reverts it on-chain", async () => {
     const r = await call("execute_action", { agentId: "1", scope: "dex.swap", amount: "150000000", forceSubmit: true });
     expect(r.structuredContent).toMatchObject({ executed: false, stoppedBy: "on-chain", status: "reverted", reason: "ExceedsPerTxLimit" });
+  });
+
+  it("execute_action reports the reason the chain gave, not the pre-check's", async () => {
+    // The forced transaction is mined an hour later, after its intent's deadline: the pre-check says
+    // ExceedsPerTxLimit, but the gate reverts it first with IntentExpired.
+    const { timestamp } = await env.publicClient.getBlock();
+    await env.publicClient.request({ method: "evm_setNextBlockTimestamp", params: [toHex(timestamp + 3600n)] } as never);
+    const r = await call("execute_action", { agentId: "1", scope: "dex.swap", amount: "150000000", forceSubmit: true });
+    expect(r.structuredContent).toMatchObject({ executed: false, stoppedBy: "on-chain", status: "reverted", reason: "IntentExpired" });
   });
 
   it("execute_action: a counterparty outside the mandate (e.g. injected) → refused", async () => {

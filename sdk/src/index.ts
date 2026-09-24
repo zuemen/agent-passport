@@ -4,6 +4,7 @@ export * from "./credential.js";
 export * from "./presentation.js";
 export * from "./verify.js";
 export * from "./chain.js";
+export * from "./revert.js";
 export * from "./deployments.js";
 export * from "./serialize.js";
 export * from "./registration.js";

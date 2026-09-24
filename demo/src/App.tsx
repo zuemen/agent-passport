@@ -424,7 +424,7 @@ function McpSession({ run }: { run: McpRun }) {
     if (s.tool === "check_authorization") return <span className={r.authorized ? "ok" : "no"}>{r.authorized ? "✓ authorized" : `✗ ${r.reason}`} (eth_call)</span>;
     const tx = r.txHash && <> · <a href={explorerTx(r.txHash)} target="_blank" rel="noreferrer">tx {short(r.txHash)} ↗</a></>;
     if (r.executed) return <span className="ok">✓ settled on Monad{tx}</span>;
-    if (r.stoppedBy === "on-chain") return <span className="no">✗ reverted by PassportGate: {r.reason}{tx}</span>;
+    if (r.stoppedBy === "on-chain") return <span className="no">✗ reverted on Monad: {r.reason}{tx}</span>;
     return <span className="warn">■ stopped before sending: {r.reason}</span>;
   };
   return (

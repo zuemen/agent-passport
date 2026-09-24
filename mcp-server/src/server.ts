@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { Address, PublicClient } from "viem";
+import { BaseError, type Address, type PublicClient } from "viem";
 import {
   checkAuthorization,
   createPresentation,
@@ -40,6 +40,9 @@ function ok(result: Record<string, unknown>) {
   const structured = JSON.parse(json(result)) as Record<string, unknown>;
   return { content: [{ type: "text" as const, text: json(result) }], structuredContent: structured };
 }
+
+/** Error text for a tool result: viem's short message, so request details (such as an RPC URL) stay out. */
+const errorText = (e: unknown) => (e instanceof BaseError ? e.shortMessage : (e as Error).message);
 
 function fail(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
@@ -100,7 +103,7 @@ export function createPassportServer(cfg: PassportServerConfig): McpServer {
           hiddenClaimCount: held.claims.length - disclose.length,
         });
       } catch (e) {
-        return fail((e as Error).message);
+        return fail(errorText(e));
       }
     },
   );
@@ -134,7 +137,7 @@ export function createPassportServer(cfg: PassportServerConfig): McpServer {
         const errors = scopeOk ? r.errors : [...r.errors, `scope "${requiredScope}" was not disclosed`];
         return ok({ valid: errors.length === 0, errors, agentId: r.agentId, issuer: r.issuer, revealed: r.revealed, onchain: r.onchain });
       } catch (e) {
-        return fail(`could not verify: ${(e as Error).message}`);
+        return fail(`could not verify: ${errorText(e)}`);
       }
     },
   );
@@ -190,7 +193,7 @@ export function createPassportServer(cfg: PassportServerConfig): McpServer {
         const status = await credentialStatus(cfg.client, cfg.statusRegistry, held.credentialId);
         return ok({ ...verdict, credentialId: held.credentialId, credentialStatus: status.status, ownerAssurance: status.ownerAssurance, gate: cfg.gate });
       } catch (e) {
-        return fail((e as Error).message);
+        return fail(errorText(e));
       }
     },
   );
@@ -240,7 +243,7 @@ export function createPassportServer(cfg: PassportServerConfig): McpServer {
           });
           return ok(r as unknown as Record<string, unknown>);
         } catch (e) {
-          return fail((e as Error).message);
+          return fail(errorText(e));
         }
       },
     );

@@ -1,6 +1,4 @@
 import {
-  BaseError,
-  ContractFunctionRevertedError,
   createWalletClient,
   http,
   isAddressEqual,
@@ -12,7 +10,6 @@ import {
   type PublicClient,
 } from "viem";
 import {
-  REASONS,
   agentIdentityRegistryAbi,
   buildIntent,
   chainNow,
@@ -20,6 +17,7 @@ import {
   passportDexAbi,
   passportGateAbi,
   passportMerchantAbi,
+  revertReasonOf,
   signIntent,
   toGatePresentation,
   type HeldCredential,
@@ -122,23 +120,11 @@ export async function executeAction(
   return {
     executed: ok,
     stoppedBy: ok ? undefined : "on-chain",
-    reason: ok ? "Ok" : ((await revertReason(ctx, call, receipt.blockNumber)) ?? pre.reason),
+    // The on-chain reason (from the transaction's trace or a replay); if it cannot be read, never claim "Ok".
+    reason: ok ? "Ok" : ((await revertReasonOf(ctx.client, hash).catch(() => undefined)) ?? (pre.authorized ? "Reverted" : pre.reason)),
     txHash: hash,
     txUrl: `${ctx.explorer}/tx/${hash}`,
     status: receipt.status,
     block: receipt.blockNumber.toString(),
   };
-}
-
-/** Why a sent action reverted: replay it at its block and decode the gate's error. */
-async function revertReason(ctx: ActionContext, call: object, blockNumber: bigint): Promise<string | undefined> {
-  try {
-    await ctx.client.simulateContract({ ...call, account: ctx.agent, blockNumber } as never);
-  } catch (e) {
-    const err = e instanceof BaseError ? e.walk((x) => x instanceof ContractFunctionRevertedError) : null;
-    const data = err instanceof ContractFunctionRevertedError ? err.data : undefined;
-    if (data?.errorName === "NotAuthorized") return REASONS[Number(data.args?.[0])];
-    return data?.errorName;
-  }
-  return undefined;
 }

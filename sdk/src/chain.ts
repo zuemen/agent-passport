@@ -143,9 +143,14 @@ export function randomNonce(): bigint {
   return hexToBigInt(bytesToHex(crypto.getRandomValues(new Uint8Array(32))));
 }
 
-/** The chain's current time (the latest block's timestamp). Use it for intent deadlines: a skewed PC clock cannot. */
+/**
+ * The time to build intent deadlines from: the later of the latest block's timestamp and the local clock. A PC clock
+ * that lags the chain cannot expire an intent, and neither can an idle dev chain's stale latest block.
+ */
 export async function chainNow(client: PublicClient): Promise<bigint> {
-  return (await client.getBlock()).timestamp;
+  const chain = (await client.getBlock()).timestamp;
+  const local = BigInt(Math.floor(Date.now() / 1000));
+  return chain > local ? chain : local;
 }
 
 /** `now` defaults to the local clock; pass `await chainNow(client)` so a skewed PC clock cannot expire the intent. */

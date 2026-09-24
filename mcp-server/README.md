@@ -59,7 +59,7 @@ in the SDK, then `setAgentURI`), so other agents find it from the agent's on-cha
 `services: [{ "name": "MCP", "endpoint": "https://…/mcp", "version": "2025-11-25" }, { "name": "AgentPassportGate", "endpoint": "eip155:10143:<gate>" }]`.
 
 ## Tests
-`npm test` — 19 tests: every tool over an in-memory MCP transport against real contracts on anvil
+`npm test` — 20 tests: every tool over an in-memory MCP transport against real contracts on anvil
 (policy refusals, output-schema validation by the client, execute_action success / pre-flight stop /
 forced on-chain revert / counterparty outside the mandate / wrong signing key / revocation), plus the
 HTTP guards and a real Streamable HTTP session.
