@@ -21,7 +21,7 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
   passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
-- **142 tests** (95 contract · 21 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
+- **146 tests** (98 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
   Identity and Reputation registries on Monad; CI on every push (its fork-test step tolerates public-RPC outages).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
@@ -174,9 +174,9 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 ```bash
 # Windows: first run `git config --global core.longpaths true` (OpenZeppelin's nested test submodules have long paths)
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
-cd contracts && forge test && cd ..            # 95 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
+cd contracts && forge test && cd ..            # 98 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
 npm install && npm run build -w sdk && npm run build -w mcp-server
-npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 21 + 20 + 6 tests
+npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 22 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
 npm run scenario:local -w demo                 # the whole storyline on a local anvil chain — no keys, no MON
 npm run local -w demo                          # live mode against that local chain: click through it at localhost:15173
@@ -310,8 +310,8 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 `npm run why -w demo -- 0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c` → `NotAuthorized(PayeeNotAllowed)`.
 
 ## Status
-- [x] Contracts — 95 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — and a check-only integration example) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
-- [x] SDK — 21 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding
+- [x] Contracts — 98 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
+- [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, 200 random tamperings of a presentation
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))

@@ -21,6 +21,9 @@ how the static-analysis findings were handled.
 | Self-asserted "verified owner" | Only registered vLEI verifiers can record owner assurance; removing a verifier voids its results | `recordOwnerAssurance`, `ownerAssuranceOf` |
 
 ## Known limitations
+The ones marked *(tested)* are pinned down in [`contracts/test/KnownLimitations.t.sol`](../contracts/test/KnownLimitations.t.sol): each test passes
+because the limitation is real, so closing one makes its test fail and this list must change with it.
+
 - **Disclosed limits are revealed exactly.** Proving "limit ≥ amount" without revealing the limit needs a
   ZK range proof — roadmap.
 - **Disclosed claims are public once an action executes.** The four gate claims and their proofs travel in the
@@ -30,16 +33,17 @@ how the static-analysis findings were handled.
   KERI/ACDC proof itself; the verifier trusts one configured root AID.
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
 - **The daily limit is a UTC calendar day.** Budgets reset at 00:00 UTC, so an agent can spend up to twice the
-  daily limit across midnight.
+  daily limit across midnight. *(tested: `test_knownLimitation_dailyLimitResetsAtUtcMidnight`)*
 - **The MCP server's default policy discloses any gate-type claim on request**, including other scopes and
   payees in the mandate; a stricter policy file can narrow it. Text claims never leave the agent by default.
 - **The registry also takes direct feedback.** An ERC-8004 Reputation Registry accepts feedback from any
   address except the agent's owner; only entries whose client is `GroundedFeedback` are tied to a
   gate-authorized action, so read the grounded score with that client filter.
+  *(tested: `test_knownLimitation_registryTakesDirectFeedback`)*
 - **Feedback is grounded, not Sybil-proof.** The gate accepts zero-amount actions and the demo DEX rates every
   settled swap, so an agent can generate positive feedback for the cost of gas; an owner can also run its own
   relying party. Readers of the reputation registry should weight feedback by relying party and amount; a
-  minimum amount per scope is future work.
+  minimum amount per scope is future work. *(tested: `test_knownLimitation_zeroAmountActionEarnsGroundedFeedback`)*
 - **A fooled agent can still spend within its mandate.** The gate stops payments to counterparties the mandate
   does not allow and amounts above its limits; inside those limits a manipulated agent can still act badly (for
   example a swap with no slippage bound), and it pays gas for anything it sends.
@@ -83,8 +87,8 @@ merkle-tree code path does not load. Forcing uuid 11 via overrides left the tree
 tracked here instead of patched.
 
 ## Tests
-95 Foundry tests (unit, every gate reason code, fuzz, and three invariants under random amounts, time jumps,
+98 Foundry tests (unit, every gate reason code, fuzz, and three invariants under random amounts, time jumps,
 replays and a revocation: today's booked spend never exceeds the daily limit, nothing is authorized after the
-mandate is revoked, and no authorized intent is accepted twice), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 21 SDK tests
+mandate is revoked, and no authorized intent is accepted twice; plus three tests that pin down known limitations), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 22 SDK tests
 (incl. end-to-end on anvil and passkey owners), 20 MCP tests (incl. HTTP transport guards) and 6 vLEI
 verifier tests.
