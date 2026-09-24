@@ -19,6 +19,7 @@ const { ANVIL_MNEMONIC, LOCAL_RPC, localChain, localDeploymentFile, repoRoot, st
 const headless = process.argv.includes("--scenario");
 const port = new URL(LOCAL_RPC).port;
 const children: ChildProcess[] = [];
+let anvilErrors = "";
 const deployerKey = toHex(mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 0 }).getHdKey().privateKey!);
 const childEnv = (extra: Record<string, string> = {}) => {
   // Never hand the testnet deployment settings from .env to the local deploy.
@@ -32,8 +33,10 @@ function start(label: string, cmd: string, cwd: string, env = childEnv()): Child
     env,
     shell: true,
     detached: process.platform !== "win32", // its own process group, so stopAll can end the shell and what it started
-    stdio: headless || label === "anvil" ? "ignore" : ["ignore", "inherit", "inherit"],
+    stdio: label === "anvil" ? ["ignore", "ignore", "pipe"] : headless ? "ignore" : ["ignore", "inherit", "inherit"],
   });
+  // Keep the tail of anvil's errors, to explain a chain that does not come up.
+  p.stderr?.on("data", (b: Buffer) => (anvilErrors = (anvilErrors + b.toString()).slice(-2000)));
   children.push(p);
   return p;
 }
@@ -78,10 +81,16 @@ try {
   // A fresh chain every time, so the previous run's agent and mandate would not exist on it.
   if (stateDir.endsWith(".state-local")) rmSync(stateDir, { recursive: true, force: true });
 
-  console.log(`▸ anvil on ${LOCAL_RPC} (chain 31337, P-256 precompile via --odyssey)`);
-  start("anvil", `anvil --port ${port} --chain-id 31337 --odyssey --silent`, repoRoot);
-  const client = createPublicClient({ chain: localChain, transport: http(LOCAL_RPC) });
-  await waitFor(() => client.getChainId(), "anvil");
+  console.log(`▸ anvil on ${LOCAL_RPC} (chain 31337)`);
+  const anvil = start("anvil", `anvil --port ${port} --chain-id 31337 --silent`, repoRoot);
+  const client = createPublicClient({ chain: localChain, transport: http(LOCAL_RPC, { timeout: 1_000, retryCount: 0 }) });
+  await waitFor(async () => {
+    if (anvil.exitCode !== null) throw new Error(`anvil exited (${anvil.exitCode}): ${anvilErrors.trim()}`);
+    return client.getChainId();
+  }, "anvil").catch((e: Error) => {
+    throw new Error(`${e.message}${anvilErrors ? `
+${anvilErrors.trim()}` : ""}`);
+  });
 
   console.log("▸ deploying the contracts (contracts/script/Deploy.s.sol)");
   const contracts = join(repoRoot, "contracts");

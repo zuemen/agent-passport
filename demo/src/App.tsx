@@ -308,7 +308,7 @@ export default function App() {
                   <button className="btn ghost" disabled={!!busy} onClick={() => doLive("vlei")}>{busy === "vlei" ? "Recording…" : "vLEI verifier: record result"}</button>
                 </div>
               )}
-              {live && <PasskeyPanel />}
+              {live && !isLocal && <PasskeyPanel /> /* passkeys need the P-256 precompile, which plain anvil lacks */}
             </section>
           )}
 

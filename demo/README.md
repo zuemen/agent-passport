@@ -14,7 +14,8 @@ npm run scenario:local -w demo   # the same local chain, the whole storyline hea
 
 Local mode uses anvil's public development accounts and writes only to `demo/.state-local/` and
 `contracts/deployments/31337.json` (both git-ignored); the testnet records are never touched. On a local chain
-there is no explorer, and the app hides the testnet-only benchmark and MCP panels.
+there is no explorer, and the app hides the testnet-only benchmark and MCP panels and the passkey panel (plain
+anvil has no P-256 precompile).
 
 Live mode and the scenario read `DEMO_OWNER_KEY`, `DEMO_AGENT_KEY` and `DEPLOYER_PRIVATE_KEY` (the
 registered vLEI verifier on testnet) from `../.env`. The API binds to 127.0.0.1 only. All data is
