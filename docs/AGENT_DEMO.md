@@ -36,5 +36,5 @@ the agent's mandate is active.
    → `present_passport` → **refused by the disclosure policy**.
 5. Owner revokes in the demo app → *"swap 1 apUSD"* → `Revoked`.
 
-Whatever the model decides, the agent wallet holds no tokens (only gas); only PassportGate can move the owner's
+Whatever the model decides, in this demo the agent wallet is never given tokens (only gas); only PassportGate can move the owner's
 money, and only within the signed mandate.

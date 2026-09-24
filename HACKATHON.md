@@ -15,7 +15,8 @@ call on Monad — who stands behind it, what it is allowed to do, and whether th
 - An owner-signed W3C Verifiable Credential (the mandate): scopes, per-transaction and daily limits, allowed
   counterparties, validity — signed with EIP-712 or a passkey (ERC-1271)
 - Field-level selective disclosure: salted-hash Merkle commitments; ZK range proofs are on the roadmap
-- On-chain status and revocation, and `PassportGate`, which checks every action and pulls funds from the owner
+- On-chain status and revocation, and `PassportGate`, which checks every action and, in the owner-funded style,
+  pulls funds from the owner
 - Owner accountability through vLEI verification; feedback grounded in gate-authorized actions (`GroundedFeedback`)
 - An MCP server, so any agent can present its passport and act
 

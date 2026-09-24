@@ -5,13 +5,14 @@ import {IAgentReputation} from "./interfaces/IAgentReputation.sol";
 import {PassportGate} from "./PassportGate.sol";
 
 /// @title GroundedFeedback
-/// @notice ERC-8004 reputation that cannot be farmed: the only way to post feedback through this
+/// @notice ERC-8004 feedback grounded in real actions: the only way to post feedback through this
 ///         contract is to be the counterparty of an action PassportGate actually authorized, and each
 ///         action can be rated once. The feedback lands in a standard ERC-8004 Reputation Registry
 ///         (ours or the official deployment) with this contract as the client and the action id as
-///         `feedbackHash`, so anyone can read a Sybil-resistant score with
+///         `feedbackHash`, so anyone can read a score grounded in authorized actions with
 ///             getSummary(agentId, [address(groundedFeedback)], "grounded-action", "")
-///         and trace every entry back to its on-chain action.
+///         and trace every entry back to its on-chain action. Not Sybil-proof: the gate accepts
+///         zero-amount actions, and the registry itself also takes direct feedback (docs/SECURITY.md).
 /// @dev Motivation: an empirical study of deployed ERC-8004 registries found feedback "rarely grounded
 ///      in verifiable interactions" and cheap to manipulate (arXiv 2606.26028).
 contract GroundedFeedback {

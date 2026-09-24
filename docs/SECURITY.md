@@ -33,6 +33,9 @@ how the static-analysis findings were handled.
   daily limit across midnight.
 - **The MCP server's default policy discloses any gate-type claim on request**, including other scopes and
   payees in the mandate; a stricter policy file can narrow it. Text claims never leave the agent by default.
+- **The registry also takes direct feedback.** An ERC-8004 Reputation Registry accepts feedback from any
+  address except the agent's owner; only entries whose client is `GroundedFeedback` are tied to a
+  gate-authorized action, so read the grounded score with that client filter.
 - **Feedback is grounded, not Sybil-proof.** The gate accepts zero-amount actions and the demo DEX rates every
   settled swap, so an agent can generate positive feedback for the cost of gas; an owner can also run its own
   relying party. Readers of the reputation registry should weight feedback by relying party and amount; a

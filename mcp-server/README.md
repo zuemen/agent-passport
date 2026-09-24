@@ -8,7 +8,7 @@ agent's, and ask PassportGate on Monad for a verdict before acting.
 | `present_passport(agentId, disclose[])` | agent | Selectively-disclosed presentation of the agent's credential. Empty `disclose` lists the claims and which the **disclosure policy** allows. Anything outside the policy is refused, whoever asks. |
 | `verify_passport(presentation, requiredScope?)` | any | Owner signature, Merkle membership of each disclosed claim, on-chain status (Active / Revoked / Expired …) and vLEI owner assurance. |
 | `check_authorization(agentId, scope, amount, asset?, relyingParty?)` | agent | Read-only `PassportGate.check` on Monad; returns the gate's reason code. |
-| `execute_action(agentId, scope, amount, relyingParty?, forceSubmit?)` | agent + key | Swap (`dex.swap`) or pay (`commerce.pay`) as the agent, with the owner's funds. Refuses locally if the mandate does not cover it, pre-checks the gate, then signs and sends. `forceSubmit` sends anyway so the gate's refusal is recorded on-chain. |
+| `execute_action(agentId, scope, amount, relyingParty?, asset?, forceSubmit?)` | agent + key | Swap (`dex.swap`) or pay (`commerce.pay`) as the agent, with the owner's funds. Refuses locally if the mandate does not cover it, pre-checks the gate, then signs and sends. `forceSubmit` sends anyway so the gate's refusal is recorded on-chain. |
 
 Every tool declares an `outputSchema` (structured results) and annotations (`readOnlyHint`,
 `destructiveHint`, `idempotentHint`, `openWorldHint`); the server sends `instructions` telling the model
@@ -25,7 +25,7 @@ unless the operator widens the policy: `PASSPORT_DISCLOSURE_POLICY=policy.json` 
   (`PASSPORT_ALLOWED_ORIGINS`), answering 403 otherwise;
 - without `PASSPORT_HTTP_TOKEN` the HTTP server is **verifier-only** (only `verify_passport`), safe to
   expose publicly; with a token, agent tools are served and every request needs `Authorization: Bearer`.
-- stdio (a local client launching the process) runs in agent mode.
+- stdio (a local client launching the process) runs in agent mode when `PASSPORT_CREDENTIALS` is set.
 
 ## Run
 ```bash
@@ -45,7 +45,7 @@ wallet). Credentials are files written with `serializeCredential` from the SDK.
 |---|---|
 | `MONAD_RPC_URL` | `https://testnet-rpc.monad.xyz` |
 | `PASSPORT_GATE`, `PASSPORT_STATUS_REGISTRY` | Monad testnet deployment |
-| `PASSPORT_DEFAULT_ASSET`, `PASSPORT_DEFAULT_RELYING_PARTY` | demo apUSD, PassportDex |
+| `PASSPORT_DEFAULT_ASSET` | demo apUSD (the relying party defaults per scope: PassportDex for `dex.swap`, PassportMerchant for `commerce.pay`) |
 
 Example client config:
 ```json

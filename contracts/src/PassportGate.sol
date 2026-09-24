@@ -90,8 +90,8 @@ contract PassportGate is EIP712, ReentrancyGuard {
     IAgentIdentity public immutable identityRegistry;
     CredentialStatusRegistry public immutable statusRegistry;
 
-    /// Unordered nonces: an agent can have many actions in flight at once, each with its own random
-    /// nonce, instead of queueing behind a counter — this is what lets agents use parallel execution.
+    /// Unordered nonces: each action carries its own random, single-use nonce instead of a counter, so an
+    /// agent can sign several actions at once and one that is refused does not invalidate the others.
     mapping(address agentWallet => mapping(uint256 nonce => bool)) public nonceUsed;
     mapping(bytes32 credentialId => mapping(address asset => mapping(uint256 day => uint256))) public spent;
     /// A relying party may require, per scope, that the agent's owner is a vLEI-verified legal entity.

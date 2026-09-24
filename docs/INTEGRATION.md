@@ -117,7 +117,7 @@ The SDK (`@agent-passport/sdk`, the `sdk/` workspace; viem) builds and signs the
 import { MONAD_TESTNET as C, buildIntent, chainNow, signIntent, toGatePresentation, checkAuthorization, passportDexAbi } from "@agent-passport/sdk";
 
 // The agent: sign one action and select the four claims the gate needs.
-// Take the deadline from the chain, not the local clock.
+// chainNow: the later of the latest block's time and the local clock, so a lagging PC clock can't expire it.
 const now = await chainNow(publicClient);
 const intent = buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex, now });
 const signature = await signIntent(agentAccount, 10143, C.passportGate, intent);

@@ -15,14 +15,14 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   party from the agent's next action, and passkey owners are verified by Monad's P-256 precompile ([numbers](docs/BENCHMARKS.md)).
 - **A storyline of 9 real transactions**, 4 of them agent actions the gate refused on-chain — including a
   simulated prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
-- **The agent wallet never receives the tokens**: the gate pulls each authorized amount from the owner, and the DEX
-  pays its output back to the owner.
+- **The agent wallet never received the tokens in this run**: the gate pulls each authorized amount from the owner,
+  and the DEX pays its output back to the owner.
 - **Passkey owner**: two passkey prompts set an agent up — one signs the mandate, one batch registers the agent,
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
   passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
 - **142 tests** (95 contract · 21 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
-  Identity and Reputation registries on Monad; CI on every push (its fork job tolerates public-RPC outages).
+  Identity and Reputation registries on Monad; CI on every push (its fork-test step tolerates public-RPC outages).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 
@@ -138,12 +138,12 @@ Checking *every* agent action on-chain only makes sense if the chain keeps up. M
   679 ms from first submit to last receipt** — a latency measurement, not parallel execution: they share one
   wallet and one budget slot ([details](#concurrent-actions)).
 - **Passkey owners on-chain.** WebAuthn signatures are verified by Monad's P-256 precompile (`0x0100`,
-  EIP-7951, 6,900 gas), so an institution can hold its agents' mandates behind Face ID / Windows Hello
+  EIP-7951, 6,900 gas — [Monad docs](https://docs.monad.xyz/developer-essentials/precompiles)), so an institution can hold its agents' mandates behind Face ID / Windows Hello
   instead of a seed phrase.
 - **Compatible with the official ERC-8004 deployment.** The demo deploys its own registries so it controls the
   full state; fork tests run the gate on the official Identity Registry on Monad testnet
   (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) and land `GroundedFeedback` in the official Reputation Registry
-  (`0x8004B663056A597Dffe9eCcC1965A193B7388713`, v2.0.0).
+  (`0x8004B663056A597Dffe9eCcC1965A193B7388713`).
 
 Latency, gas and cost per action on Monad, coverage, and how to reproduce each number:
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
@@ -172,6 +172,7 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 
 ## Quickstart
 ```bash
+# Windows: first run `git config --global core.longpaths true` (OpenZeppelin's nested test submodules have long paths)
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
 cd contracts && forge test && cd ..            # 95 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
 npm install && npm run build -w sdk && npm run build -w mcp-server
@@ -179,7 +180,7 @@ npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifie
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
 cp .env.example .env                           # testnet keys for the scenario / live mode (see below)
 npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
-npm run why -w demo -- <txHash>                # read-only: why did a transaction revert (the gate's reason, from its trace)
+npm run why -w demo -- <txHash>                # read-only: why did a transaction revert (from its trace, or a replay)
 npm run scenario -w demo                       # the whole storyline on Monad testnet
 npm run api -w demo                            # live mode: the app sends real testnet transactions
 ```
@@ -212,7 +213,8 @@ explorer pages below do not show Sourcify verification); every verified source f
 One later commit ([`56d2858`](https://github.com/zuemen/agent-passport/commit/56d2858)) applied Slither fixes to four
 files (two explicit zero-initialisations, an event emitted earlier in `PasskeyAccount`, and `PassportMerchant`
 checking its treasury address and reserving the order before its external call); these are not redeployed and do not change the behaviour of the
-gate or the registries ([docs/SECURITY.md](docs/SECURITY.md)). Full list: [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
+gate or the registries ([docs/SECURITY.md](docs/SECURITY.md)). Later, only comments changed in `PassportGate.sol` and
+`GroundedFeedback.sol` (claims narrowed to what the code guarantees). Full list: [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
 
 | Contract | Address |
 |---|---|
@@ -247,7 +249,7 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 | ✅ | owner | Owner revokes the credential |  | [`0xa2b7294d…`](https://testnet.monadscan.com/tx/0xa2b7294daed5ee0f6da1b5367d60731d91614e885324d71f1518a84ce5192075) |
 | ❌ | agent | Agent swaps 10 apUSD after revocation | Revoked | [`0x52350221…`](https://testnet.monadscan.com/tx/0x5235022168c57d93b487c8925954c4c7320964d711fbfeda4ecacba3b0d42fa2) |
 
-Median submit → receipt latency in this run: **827 ms**. The agent wallet never receives the tokens —
+Median submit → receipt latency in this run: **827 ms**. In this run the agent wallet never received the tokens —
 PassportGate pulls each authorized amount from the owner, and the DEX pays its output to the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
 Explorers show a reverted transaction as failed without the reason. `npm run why -w demo -- <tx>` reads it from the

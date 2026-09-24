@@ -6,7 +6,7 @@ disclose only the claims a verifier needs, verify presentations against Monad, a
 ```ts
 import {
   issueCredential, anchorCredential, toGatePresentation, createPresentation,
-  verifyPresentation, buildIntent, signIntent, checkAuthorization, revokeCredential,
+  verifyPresentation, buildIntent, chainNow, signIntent, checkAuthorization, revokeCredential,
   MONAD_TESTNET,
 } from "@agent-passport/sdk";
 
@@ -25,9 +25,10 @@ const held = await issueCredential({
 }, ownerWallet);
 await anchorCredential(ownerWallet, MONAD_TESTNET.credentialStatusRegistry, held);
 
-// Agent: act through a relying party
+// Agent: act through a relying party (deadline from chainNow, not the local clock alone)
 const intent = buildIntent({ credentialId: held.credentialId, scope: "dex.swap",
-  asset: MONAD_TESTNET.demoUsd, amount: 80_000_000n, relyingParty: MONAD_TESTNET.passportDex });
+  asset: MONAD_TESTNET.demoUsd, amount: 80_000_000n, relyingParty: MONAD_TESTNET.passportDex,
+  now: await chainNow(publicClient) });
 const signature = await signIntent(agentAccount, 10143, MONAD_TESTNET.passportGate, intent);
 const presentation = toGatePresentation(held, { scope: "dex.swap",
   asset: MONAD_TESTNET.demoUsd, relyingParty: MONAD_TESTNET.passportDex });
