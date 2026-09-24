@@ -75,7 +75,7 @@ tests. Medians include calls that revert inside the tests.
 | PassportGate | `authorize` | 101,250 | 192,873 |
 | PassportGate | `authorizeAndPull` | 224,379 | 224,379 |
 | CredentialStatusRegistry | `anchor` | 130,500 | 130,512 |
-| CredentialStatusRegistry | `revoke` | 30,148 | 33,903 |
+| CredentialStatusRegistry | `revoke` | 33,747 | 33,903 |
 | CredentialStatusRegistry | `revokeAll` (kill switch) | 51,409 | 51,409 |
 | CredentialStatusRegistry | `recordOwnerAssurance` | 64,225 | 95,595 |
 | GroundedFeedback | `rate` | 31,337 | 33,519 |
