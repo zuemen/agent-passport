@@ -21,8 +21,8 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
   passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
-- **138 tests** (95 contract · 18 SDK · 19 MCP · 6 verifier) plus 2 fork tests against the official ERC-8004
-  Identity Registry on Monad; CI on every push (its fork job tolerates public-RPC outages).
+- **138 tests** (95 contract · 18 SDK · 19 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
+  Identity and Reputation registries on Monad; CI on every push (its fork job tolerates public-RPC outages).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 
@@ -141,8 +141,9 @@ Checking *every* agent action on-chain only makes sense if the chain keeps up. M
   EIP-7951, 6,900 gas), so an institution can hold its agents' mandates behind Face ID / Windows Hello
   instead of a seed phrase.
 - **Compatible with the official ERC-8004 deployment.** The demo deploys its own registries so it controls the
-  full state; a fork test runs the gate against the official Identity Registry on Monad testnet
-  (`0x8004A818BFB912233c491871b3d84c89A494BD9e`).
+  full state; fork tests run the gate on the official Identity Registry on Monad testnet
+  (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) and land `GroundedFeedback` in the official Reputation Registry
+  (`0x8004B663056A597Dffe9eCcC1965A193B7388713`, v2.0.0).
 
 Latency, gas and cost per action on Monad, coverage, and how to reproduce each number:
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
@@ -165,14 +166,14 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 | | How Agent Passport relates |
 |---|---|
 | Credential / attestation layers on ERC-8004 | They answer *who* an agent is. Agent Passport decides whether it may do this action now, inside the transaction that moves the money, keeps the budget and revocation on-chain, and ties reputation to authorized actions. |
-| ERC-8004 registries alone | Identity and feedback; no mandate, limits, revocation or accountable owner. Agent Passport builds on them, and is fork-tested against the official Identity Registry on Monad. |
+| ERC-8004 registries alone | Identity and feedback; no mandate, limits, revocation or accountable owner. Agent Passport builds on them, and is fork-tested against the official Identity and Reputation registries on Monad. |
 | Wallet permissions (e.g. ERC-7715 / 7710) | Limit what a key may spend from one wallet. They don't give a counterparty verifiable, privacy-preserving proof of who stands behind an agent. Complementary. |
 | Google AP2 mandates | [AP2 v0.2](https://ap2-protocol.org/ap2/payment_mandate/) carries user mandates as SD-JWT credentials; its open Payment Mandate constraints (amount range, budget, allowed payees, validity) mirror our claims, and its budget needs a record of past spending. Agent Passport keeps that record — and revocation — on Monad. Aligned in semantics, not an AP2 implementation. |
 
 ## Quickstart
 ```bash
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
-cd contracts && forge test && cd ..            # 95 tests (+ 2 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
+cd contracts && forge test && cd ..            # 95 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 18 + 19 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
@@ -304,7 +305,7 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 `npm run why -w demo -- 0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c` → `NotAuthorized(PayeeNotAllowed)`.
 
 ## Status
-- [x] Contracts — 95 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — and a check-only integration example) + fork tests against the official ERC-8004 Identity Registry; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
+- [x] Contracts — 95 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — and a check-only integration example) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 18 tests incl. end-to-end on anvil and passkey owners
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode

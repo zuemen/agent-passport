@@ -86,7 +86,7 @@ tests. Medians include calls that revert inside the tests.
 ## Test coverage
 
 `cd contracts && FOUNDRY_INVARIANT_RUNS=8 forge coverage --ir-minimum --no-match-contract GateInvariant --report summary`
-(the invariant suite is left out to keep the run short; the fork test is skipped without `MONAD_FORK_URL`).
+(the invariant suite is left out to keep the run short; the fork tests are skipped without `MONAD_FORK_URL`).
 
 | Contract | Lines | Branches | Functions |
 |---|---|---|---|
@@ -111,7 +111,7 @@ the check-only example in [`contracts/test/examples/`](../contracts/test/example
 | Suite | Tests | Command |
 |---|---|---|
 | Contracts (unit, every gate reason code, fuzz, 3 invariants, check-only example) | 95 | `cd contracts && forge test` |
-| Fork tests against the official ERC-8004 Identity Registry | 2 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
+| Fork tests against the official ERC-8004 Identity and Reputation registries | 3 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
 | SDK (incl. end-to-end on anvil, passkey owners) | 18 | `npm test -w sdk` |
 | MCP server | 19 | `npm test -w mcp-server` |
 | vLEI verifier | 6 | `npm test -w @agent-passport/verifier` |

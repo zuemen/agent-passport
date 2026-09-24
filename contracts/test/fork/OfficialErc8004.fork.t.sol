@@ -6,6 +6,8 @@ import {CredentialStatusRegistry} from "../../src/CredentialStatusRegistry.sol";
 import {PassportGate} from "../../src/PassportGate.sol";
 import {PassportClaims} from "../../src/libraries/PassportClaims.sol";
 import {IAgentIdentity} from "../../src/interfaces/IAgentIdentity.sol";
+import {IAgentReputation} from "../../src/interfaces/IAgentReputation.sol";
+import {GroundedFeedback} from "../../src/GroundedFeedback.sol";
 
 interface IOfficialIdentity {
     function register(string memory agentURI) external returns (uint256);
@@ -16,12 +18,18 @@ interface IOfficialIdentity {
     function getVersion() external pure returns (string memory);
 }
 
-/// @notice Agent Passport on top of the *official* ERC-8004 Identity Registry deployed on Monad testnet
+interface IOfficialReputation {
+    function getIdentityRegistry() external view returns (address);
+    function getClients(uint256 agentId) external view returns (address[] memory);
+}
+
+/// @notice Agent Passport on top of the *official* ERC-8004 Identity and Reputation registries deployed on Monad testnet
 ///         (erc-8004/erc-8004-contracts). Runs against a fork:
 ///             MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"
 ///         Skipped when MONAD_FORK_URL is not set.
 contract OfficialErc8004ForkTest is Test {
     address constant OFFICIAL_IDENTITY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
+    address constant OFFICIAL_REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
 
     IOfficialIdentity identity = IOfficialIdentity(OFFICIAL_IDENTITY);
     CredentialStatusRegistry status;
@@ -131,5 +139,30 @@ contract OfficialErc8004ForkTest is Test {
         // The official registry clears agentWallet on transfer; our status registry flags the issuer.
         assertEq(identity.getAgentWallet(agentId), address(0));
         assertEq(uint8(status.statusOf(CID)), uint8(CredentialStatusRegistry.Status.IssuerNotOwner));
+    }
+
+    /// Feedback for a gate-authorized action lands in the official Reputation Registry, once per action.
+    function test_fork_groundedFeedback_landsInOfficialReputation() public {
+        IOfficialReputation rep = IOfficialReputation(OFFICIAL_REPUTATION);
+        assertEq(rep.getIdentityRegistry(), OFFICIAL_IDENTITY, "official reputation points at the official identity");
+        GroundedFeedback feedback = new GroundedFeedback(gate, IAgentReputation(OFFICIAL_REPUTATION));
+
+        PassportGate.ActionIntent memory intent = PassportGate.ActionIntent(
+            CID, keccak256("dex.swap"), asset, 80e6, address(this), 7, block.timestamp + 60
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(agentKey, gate.hashIntent(intent));
+        (bytes32 actionId,,) = gate.authorize(intent, _presentation(), abi.encodePacked(r, s, v));
+
+        // This test contract is the action's relying party, so it may rate it — once.
+        feedback.rate(actionId, 100, 0, "settled", "");
+        address[] memory clients = rep.getClients(agentId);
+        bool found;
+        for (uint256 i; i < clients.length; ++i) {
+            if (clients[i] == address(feedback)) found = true;
+        }
+        assertTrue(found, "GroundedFeedback is a client of the agent in the official registry");
+
+        vm.expectRevert(GroundedFeedback.AlreadyRated.selector);
+        feedback.rate(actionId, 100, 0, "settled", "");
     }
 }
