@@ -15,6 +15,7 @@ import {
   REASONS,
   agentIdentityRegistryAbi,
   buildIntent,
+  chainNow,
   checkAuthorization,
   passportDexAbi,
   passportGateAbi,
@@ -94,7 +95,7 @@ export async function executeAction(
   if (!pre.authorized && !a.forceSubmit) return { executed: false, stoppedBy: "pre-flight", reason: pre.reason };
 
   // Deadlines follow the chain's clock, not the local one (a skewed PC clock would expire every intent).
-  const { timestamp: now } = await ctx.client.getBlock();
+  const now = await chainNow(ctx.client);
   const intent = buildIntent({ credentialId: held.credentialId, scope: a.scope, asset: a.asset, amount: a.amount, relyingParty: a.relyingParty, now });
   const signature = await signIntent(ctx.agent, ctx.chain.id, ctx.gate, intent);
   const wc = createWalletClient({ chain: ctx.chain, transport: http(ctx.rpcUrl), account: ctx.agent });

@@ -14,6 +14,7 @@ import {
   MONAD_TESTNET,
   agentIdentityRegistryAbi,
   buildIntent,
+  chainNow,
   buildRegistrationFile,
   credentialStatusRegistryAbi,
   gateClaimNames,
@@ -261,7 +262,7 @@ export class Scenario {
   async swap(id: string, title: string, amount: number, opts: { dex?: Address; expect?: "success" | "rejected" } = {}) {
     const dex = opts.dex ?? C.passportDex;
     const agent = this.a.agent;
-    const { timestamp: now } = await this.a.publicClient.getBlock(); // chain time, not the local clock
+    const now = await chainNow(this.a.publicClient as never); // chain time, not the local clock
     const intent = buildIntent({ credentialId: this.held!.credentialId, scope: "dex.swap", asset: C.demoUsd, amount: USD(amount), relyingParty: dex, now });
     const signature = await signIntent(agent.account as never, CHAIN_ID, C.passportGate, intent);
     // The agent can only present claims for the payees in its credential; for a look-alike DEX it
@@ -277,7 +278,7 @@ export class Scenario {
 
   async pay(id: string, title: string, amount: number, expect: "success" | "rejected") {
     const agent = this.a.agent;
-    const { timestamp: now } = await this.a.publicClient.getBlock(); // chain time, not the local clock
+    const now = await chainNow(this.a.publicClient as never); // chain time, not the local clock
     const intent = buildIntent({ credentialId: this.held!.credentialId, scope: "commerce.pay", asset: C.demoUsd, amount: USD(amount), relyingParty: C.passportMerchant, now });
     const signature = await signIntent(agent.account as never, CHAIN_ID, C.passportGate, intent);
     const presentation = toGatePresentation(this.held!, { scope: "commerce.pay", asset: C.demoUsd, relyingParty: C.passportMerchant });
