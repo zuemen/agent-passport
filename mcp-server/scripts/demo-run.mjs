@@ -41,9 +41,12 @@ if (!agentKey) throw new Error("DEMO_AGENT_KEY is not set (see .env.example)");
 /** The agent to act as: DEMO_AGENT_ID, else the scenario's agent, else the newest credential in mcp-server/credentials. */
 function agentId() {
   if (process.env.DEMO_AGENT_ID) return process.env.DEMO_AGENT_ID;
-  const state = join(repoRoot, "demo", ".state", "agent.json");
-  if (existsSync(state)) return String(JSON.parse(readFileSync(state, "utf8")).agentId);
   const dir = join(repoRoot, "mcp-server", "credentials");
+  const state = join(repoRoot, "demo", ".state", "agent.json");
+  if (existsSync(state)) {
+    const own = String(JSON.parse(readFileSync(state, "utf8")).agentId);
+    if (existsSync(join(dir, `agent-${own}.json`))) return own;
+  }
   const files = existsSync(dir) ? readdirSync(dir).filter((f) => /^agent-\d+\.json$/.test(f)) : [];
   const newest = files.sort((a, b) => statSync(join(dir, b)).mtimeMs - statSync(join(dir, a)).mtimeMs)[0];
   if (!newest) throw new Error("no credential in mcp-server/credentials — run npm run scenario -w demo first");
@@ -53,6 +56,9 @@ const AGENT_ID = agentId();
 const USD = (n) => String(BigInt(Math.round(n * 1e6)));
 const run = { version: 1, startedAt: new Date().toISOString(), chainId: 10143, client: "scripted MCP client (no LLM)", agentId: AGENT_ID, steps: [] };
 
+/** First line only, URLs masked: an RPC URL can carry an API key, and these logs are published. */
+const redact = (text = "") => text.split("\n")[0].replace(/https?:\/\/\S+/g, "<url>");
+
 function record(step) {
   run.steps.push({ at: new Date().toISOString(), ...step });
   if (liveFile) writeFileSync(liveFile, JSON.stringify(run, null, 2));
@@ -61,6 +67,7 @@ function record(step) {
   console.log(`${step.id.padEnd(18)} ${step.tool.padEnd(20)} ${summary}${r.txHash ? `  ${r.txHash}` : ""}`);
 }
 
+const rpcUrl = process.env.MONAD_TESTNET_RPC_URL || dotenv.MONAD_TESTNET_RPC_URL;
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [join(repoRoot, "mcp-server", "dist", "index.js")],
@@ -68,9 +75,9 @@ const transport = new StdioClientTransport({
     ...getDefaultEnvironment(),
     PASSPORT_CREDENTIALS: join(repoRoot, "mcp-server", "credentials"),
     PASSPORT_AGENT_KEY: agentKey,
-    ...(dotenv.MONAD_TESTNET_RPC_URL ? { MONAD_RPC_URL: dotenv.MONAD_TESTNET_RPC_URL } : {}),
+    ...(rpcUrl ? { MONAD_RPC_URL: rpcUrl } : {}),
   },
-  stderr: "ignore",
+  stderr: "inherit",
 });
 const client = new Client({ name: "agent-passport-demo-run", version: "0.1.0" });
 await client.connect(transport);
@@ -79,12 +86,13 @@ async function call(id, title, tool, args) {
   const res = await client.callTool({ name: tool, arguments: args }, undefined, { timeout: 120_000 });
   const text = res.content?.find((c) => c.type === "text")?.text;
   const step = { id, title, tool, args };
-  if (res.isError) step.error = text;
+  if (res.isError) step.error = redact(text);
   else step.result = res.structuredContent ?? (text ? JSON.parse(text) : {});
   record(step);
   return step;
 }
 
+let finished = false;
 try {
   const { tools } = await client.listTools();
   record({ id: "tools", title: "The agent's MCP server exposes its tools", tool: "tools/list", args: {}, result: { tools: tools.map((t) => t.name) } });
@@ -114,12 +122,16 @@ try {
       agentId: AGENT_ID, disclose: [hidden],
     });
   }
+  finished = true;
+} catch (e) {
+  run.error = redact(e instanceof Error ? e.message : String(e));
+  throw e;
 } finally {
   run.finishedAt = new Date().toISOString();
-  run.done = true;
+  run.done = finished;
   if (liveFile) writeFileSync(liveFile, JSON.stringify(run, null, 2));
-  // Only a run that sent something replaces the recorded one (not --dry, not a failed pre-check).
-  if (run.steps.some((s) => s.result?.txHash)) {
+  // Only a complete run that sent something replaces the recorded one (not --dry, a failed pre-check, or a crash).
+  if (finished && run.steps.some((s) => s.result?.txHash)) {
     writeFileSync(join(repoRoot, "demo", "public", "runs", "mcp-latest.json"), JSON.stringify(run, null, 2) + "\n");
   }
   await client.close();
