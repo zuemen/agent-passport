@@ -6,6 +6,7 @@ import {
   chain,
   explorerAddr,
   isLocal,
+  localMonadRules,
   explorerTx,
   liveGateCheck,
   fetchLiveReport,
@@ -203,7 +204,7 @@ export default function App() {
         <div className="mast-meta">
           <span className={`chip ${live ? "live" : ""}`}>
             <span className="dot" />
-            {live ? (isLocal ? "Live · local chain (anvil)" : "Live · sending to Monad testnet") : "Recorded run · Monad testnet"}
+            {live ? (isLocal ? `Live · local chain (anvil${localMonadRules ? ", Monad EVM rules" : ""})` : "Live · sending to Monad testnet") : "Recorded run · Monad testnet"}
           </span>
           <a className="chip" href={explorerAddr(C.passportGate)} target="_blank" rel="noreferrer">
             PassportGate {short(C.passportGate)}

@@ -12,6 +12,8 @@ import type { RunLog, StepLog } from "../scenario/types";
 // `npm run local -w demo` serves the app against a local anvil chain and passes its deployment in.
 const localDeployment = import.meta.env.VITE_LOCAL_DEPLOYMENT as string | undefined;
 export const isLocal = import.meta.env.VITE_DEMO_NETWORK === "local" && !!localDeployment;
+/** The local chain runs under Monad's EVM rules (anvil --network monad, Foundry 1.8+). */
+export const localMonadRules = isLocal && import.meta.env.VITE_LOCAL_MONAD_RULES === "1";
 const localChain = defineChain({
   id: 31337,
   name: "Local anvil",

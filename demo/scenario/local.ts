@@ -176,7 +176,13 @@ try {
       "app",
       `npx vite --port ${appPort} --strictPort`,
       demo,
-      childEnv({ VITE_DEMO_NETWORK: "local", VITE_LOCAL_RPC: LOCAL_RPC, VITE_LOCAL_DEPLOYMENT: JSON.stringify(d), VITE_DEMO_API: api }),
+      childEnv({
+        VITE_DEMO_NETWORK: "local",
+        VITE_LOCAL_RPC: LOCAL_RPC,
+        VITE_LOCAL_DEPLOYMENT: JSON.stringify(d),
+        VITE_LOCAL_MONAD_RULES: monadRules ? "1" : "",
+        VITE_DEMO_API: api,
+      }),
     );
     console.log(`\n  Open http://localhost:${appPort} — the chip says “Live · local chain”. Owner → Sign & anchor, then the Agent actions.`);
     console.log("  Ctrl+C stops anvil, the API and the app.\n");
