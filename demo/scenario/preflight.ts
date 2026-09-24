@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { createPublicClient, formatEther, http, type Address, type Hex } from "viem";
 import { privateKeyToAddress } from "viem/accounts";
 import { MONAD_TESTNET, credentialStatus, monadTestnet } from "@agent-passport/sdk";
-import { env, repoRoot } from "./env.js";
+import { env, mcpCredentialFile, repoRoot } from "./env.js";
 
 const API = "http://127.0.0.1:18790";
 const APP = "http://localhost:15173";
@@ -112,8 +112,8 @@ async function checkMcp() {
   if (!existsSync(join(repoRoot, "mcp-server", "dist", "index.js")))
     report("fail", "MCP server build", "missing mcp-server/dist — npm run build -w mcp-server");
   else report("ok", "MCP server build", "mcp-server/dist/index.js present");
-  const file = join(repoRoot, "mcp-server", "credentials", "agent-1.json");
-  const credentialId = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).credentialId as Hex) : undefined;
+  const file = mcpCredentialFile();
+  const credentialId = file ? (JSON.parse(readFileSync(file, "utf8")).credentialId as Hex) : undefined;
   await checkMandate("MCP mandate", credentialId, `issue a fresh one: curl -X POST ${API}/api/step/issue (docs/AGENT_DEMO.md)`);
   if (!process.env.DEMO_AGENT_KEY)
     report("warn", "MCP agent key", "DEMO_AGENT_KEY is not exported in this shell; .mcp.json reads it from the environment");

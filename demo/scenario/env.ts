@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
@@ -20,6 +20,19 @@ function loadEnv(): Record<string, string> {
 }
 
 export const env = { ...loadEnv(), ...process.env } as Record<string, string | undefined>;
+
+/** The MCP server's credential for the scenario's agent (demo/.state/agent.json), else the newest one. */
+export function mcpCredentialFile(): string | undefined {
+  const dir = join(repoRoot, "mcp-server", "credentials");
+  if (!existsSync(dir)) return undefined;
+  const state = join(repoRoot, "demo", ".state", "agent.json");
+  if (existsSync(state)) {
+    const own = join(dir, `agent-${JSON.parse(readFileSync(state, "utf8")).agentId}.json`);
+    if (existsSync(own)) return own;
+  }
+  const files = readdirSync(dir).filter((f) => /^agent-\d+\.json$/.test(f)).map((f) => join(dir, f));
+  return files.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+}
 
 function key(name: string): Hex {
   const v = env[name];

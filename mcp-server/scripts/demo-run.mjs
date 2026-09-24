@@ -12,7 +12,7 @@
  * Output: demo/public/runs/mcp-latest.json. With --live <file>, each step is also appended to <file> as it
  * happens (for a live log view).
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -38,7 +38,18 @@ const dotenv = readEnv();
 const agentKey = process.env.DEMO_AGENT_KEY || dotenv.DEMO_AGENT_KEY;
 if (!agentKey) throw new Error("DEMO_AGENT_KEY is not set (see .env.example)");
 
-const AGENT_ID = "1";
+/** The agent to act as: DEMO_AGENT_ID, else the scenario's agent, else the newest credential in mcp-server/credentials. */
+function agentId() {
+  if (process.env.DEMO_AGENT_ID) return process.env.DEMO_AGENT_ID;
+  const state = join(repoRoot, "demo", ".state", "agent.json");
+  if (existsSync(state)) return String(JSON.parse(readFileSync(state, "utf8")).agentId);
+  const dir = join(repoRoot, "mcp-server", "credentials");
+  const files = existsSync(dir) ? readdirSync(dir).filter((f) => /^agent-\d+\.json$/.test(f)) : [];
+  const newest = files.sort((a, b) => statSync(join(dir, b)).mtimeMs - statSync(join(dir, a)).mtimeMs)[0];
+  if (!newest) throw new Error("no credential in mcp-server/credentials — run npm run scenario -w demo first");
+  return newest.match(/^agent-(\d+)\.json$/)[1];
+}
+const AGENT_ID = agentId();
 const USD = (n) => String(BigInt(Math.round(n * 1e6)));
 const run = { version: 1, startedAt: new Date().toISOString(), chainId: 10143, client: "scripted MCP client (no LLM)", agentId: AGENT_ID, steps: [] };
 

@@ -13,7 +13,8 @@
     "bench": "tsx scenario/bench.ts",
     "passkey": "tsx scenario/passkey.ts",
     "preflight": "tsx scenario/preflight.ts",
-    "gas": "tsx scenario/gas.ts"
+    "gas": "tsx scenario/gas.ts",
+    "why": "tsx scenario/why.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

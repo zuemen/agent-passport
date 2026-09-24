@@ -1,10 +1,9 @@
 /**
  * npm run gas -w demo — what PassportGate.check costs on Monad testnet, measured with eth_estimateGas
- * against the agent's current mandate (mcp-server/credentials/agent-1.json). Read-only: nothing is signed or sent.
+ * against the agent's current mandate (its file in mcp-server/credentials/). Read-only: nothing is signed or sent.
  * The estimate is for a standalone call, so it includes the 21,000 base cost and the calldata.
  */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createPublicClient, encodeFunctionData, http } from "viem";
 import {
   MONAD_TESTNET as C,
@@ -16,10 +15,12 @@ import {
   scopeHash,
   toGatePresentation,
 } from "@agent-passport/sdk";
-import { env, repoRoot } from "./env.js";
+import { env, mcpCredentialFile } from "./env.js";
 
 const client = createPublicClient({ chain: monadTestnet, transport: http(env.MONAD_TESTNET_RPC_URL || undefined) });
-const held = deserializeCredential(readFileSync(join(repoRoot, "mcp-server", "credentials", "agent-1.json"), "utf8"));
+const file = mcpCredentialFile();
+if (!file) throw new Error("no credential in mcp-server/credentials — run npm run scenario -w demo first");
+const held = deserializeCredential(readFileSync(file, "utf8"));
 const status = await credentialStatus(client, C.credentialStatusRegistry, held.credentialId);
 console.log(`mandate ${held.credentialId.slice(0, 10)}… ${status.status}, owner ${status.ownerAssurance}, agent #${status.agentId}`);
 
