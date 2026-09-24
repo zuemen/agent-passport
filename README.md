@@ -173,8 +173,9 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 | Google AP2 mandates | [AP2 v0.2](https://ap2-protocol.org/ap2/payment_mandate/) carries user mandates as SD-JWT credentials; its open Payment Mandate constraints (amount range, budget, allowed payees, validity) mirror our claims, and its budget needs a record of past spending. Agent Passport keeps that record — and revocation — on Monad. Aligned in semantics, not an AP2 implementation. |
 
 ## Verify it yourself — no keys, no MON
-From a fresh clone, after `npm install && npm run build -w sdk` (and [Foundry](https://getfoundry.sh) for the
-`forge` and local-chain lines), none of these sends a testnet transaction:
+With [Foundry](https://getfoundry.sh) and Node, from a fresh clone, after
+`cd contracts && forge build && cd .. && npm install && npm run build -w sdk` (the SDK takes its ABIs from the
+Foundry build), none of these sends a testnet transaction — each was run that way on a fresh clone:
 
 | What you check | Command | You should see |
 |---|---|---|

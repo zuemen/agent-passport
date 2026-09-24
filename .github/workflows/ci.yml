@@ -15,13 +15,22 @@ jobs:
         with:
           submodules: recursive
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
       - run: forge build --sizes
       - run: forge test -vv
+      - name: The same suite on Foundry's Monad EVM
+        run: forge test --network monad
       - name: Fork test against the official ERC-8004 deployment on Monad testnet
-        run: forge test --match-path "test/fork/*" -vv
         env:
           MONAD_FORK_URL: https://testnet-rpc.monad.xyz
-        continue-on-error: true # public RPC availability should not fail the build
+        run: |
+          # Skipped only when the public RPC does not answer; a failing test fails the build.
+          if [ "$(cast chain-id --rpc-url "$MONAD_FORK_URL" 2>/dev/null)" != "10143" ]; then
+            echo "::warning::Monad testnet RPC unreachable, fork test skipped"
+            exit 0
+          fi
+          forge test --match-path "test/fork/*" --network monad -vv
 
   typescript:
     runs-on: ubuntu-latest
@@ -30,6 +39,8 @@ jobs:
         with:
           submodules: recursive
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -47,11 +58,14 @@ jobs:
   local-scenario:
     # The whole storyline on a fresh local chain: deploy, issue, act, refuse, revoke — no keys, no testnet.
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
       - uses: actions/setup-node@v5
         with:
           node-version: 22

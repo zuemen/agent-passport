@@ -68,10 +68,18 @@ contract KnownLimitationsTest is PassportFixture {
     /// SECURITY.md "The registry also takes direct feedback": anyone but the owner can rate an agent directly;
     /// only the GroundedFeedback client filter separates grounded ratings from those.
     function test_knownLimitation_registryTakesDirectFeedback() public {
+        string memory tag = feedback.TAG();
+        feedback.rate(_authorize(10e6), 100, 0, "settled", "");
         address stranger = makeAddr("stranger");
         vm.prank(stranger);
-        reputation.giveFeedback(agentId, 100, 0, "grounded-action", "", "", "", bytes32(0));
-        assertEq(_summary(stranger, "grounded-action"), 1, "accepted, even with the grounded tag");
-        assertEq(_summary(address(feedback), "grounded-action"), 0, "but not counted under the GroundedFeedback client");
+        reputation.giveFeedback(agentId, 100, 0, tag, "", "", "", bytes32(0));
+
+        address[] memory both = new address[](2);
+        both[0] = address(feedback);
+        both[1] = stranger;
+        (uint64 all,,) = reputation.getSummary(agentId, both, tag, "");
+        assertEq(all, 2, "the registry counts the direct rating, even with the grounded tag");
+        assertEq(_summary(stranger, tag), 1);
+        assertEq(_summary(address(feedback), tag), 1, "filtering by the GroundedFeedback client leaves only the grounded one");
     }
 }

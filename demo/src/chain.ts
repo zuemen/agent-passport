@@ -42,7 +42,8 @@ export async function probeLive(): Promise<boolean> {
   if (!localPage && !import.meta.env.VITE_DEMO_API) return false;
   try {
     const r = await fetch(`${API}/api/state`, { signal: AbortSignal.timeout(800) });
-    return r.ok;
+    // A testnet page never drives a local-chain API, and the reverse.
+    return r.ok && ((await r.json()) as { chainId?: number }).chainId === chain.id;
   } catch {
     return false;
   }

@@ -1,11 +1,15 @@
 // Generates src/abi.ts (ABIs as `const` for viem type inference) and test/fixtures/bytecode.json
 // from the Foundry build output. Run `forge build` in ../contracts first.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "..", "..", "contracts", "out");
+if (!existsSync(join(out, "PassportGate.sol"))) {
+  console.error("No Foundry build output in contracts/out — run `forge build` in contracts/ first.");
+  process.exit(1);
+}
 const contracts = {
   AgentIdentityRegistry: "AgentIdentityRegistry.sol",
   AgentReputationRegistry: "AgentReputationRegistry.sol",

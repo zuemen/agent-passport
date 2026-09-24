@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { toHex, type Hex } from "viem";
 import { type WebAuthnAssertion } from "@agent-passport/sdk";
-import { deployment } from "./env.js";
+import { CHAIN_ID, deployment } from "./env.js";
 import { Scenario } from "./scenario.js";
 import { PasskeyOwnerFlow } from "./passkeyOwner.js";
 import type { StepLog } from "./types.js";
@@ -85,6 +85,7 @@ createServer(async (req, res) => {
     return void res.writeHead(200, cors).end(
       JSON.stringify({
         live: true,
+        chainId: CHAIN_ID,
         agentId: scenario.agentId?.toString(),
         credentialId: scenario.held?.credentialId,
         steps: [...scenario.setup, ...scenario.steps],

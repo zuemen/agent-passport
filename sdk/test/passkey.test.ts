@@ -48,7 +48,7 @@ async function execute(calls: PasskeyCall[]) {
 }
 
 beforeAll(async () => {
-  env = await startAnvil(18549);
+  env = await startAnvil(18546);
   const pc = env.publicClient;
   const d = env.wallet(0);
   c.identity = await deploy(d, pc as never, "AgentIdentityRegistry", agentIdentityRegistryAbi as never);

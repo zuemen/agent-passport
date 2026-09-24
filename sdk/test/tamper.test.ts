@@ -20,11 +20,15 @@ const input: AuthorizationInput = {
   text: { purpose: "Treasury rebalancing", ownerName: "Example Treasury Ltd" },
 };
 
-// Deterministic choices without a property-testing dependency: a 32-bit linear congruential generator.
+// Deterministic positions without a property-testing dependency: mulberry32, whose every output bit is mixed
+// (a plain LCG's low bits cycle with a short period and would pick the same field every time).
 let seed = 0x5eed;
 const rand = (n: number) => {
-  seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-  return seed % n;
+  seed = (seed + 0x6d2b79f5) >>> 0;
+  let t = seed;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return Math.floor((((t ^ (t >>> 14)) >>> 0) / 2 ** 32) * n);
 };
 /** Change one hex digit of a 0x-prefixed value. */
 const flip = (h: Hex): Hex => {
@@ -33,24 +37,33 @@ const flip = (h: Hex): Hex => {
 };
 
 describe("tampering with a presentation", () => {
-  it("any single changed salt, key, value or proof element fails verification (200 random cases)", async () => {
+  it("a changed hex digit in any salt, key, value or proof element of any disclosure fails verification", async () => {
     const held = await issueCredential(input, owner);
     const untouched = createPresentation(held, listClaims(held).map((c) => c.name));
     expect((await verifyPresentation(untouched)).valid).toBe(true);
 
+    // Every disclosure × every field, several random digits each: at least 200 cases, no field left out.
     const fields = ["salt", "key", "value", "proof"] as const;
-    for (let k = 0; k < 200; k++) {
-      const p: Presentation = structuredClone(untouched);
-      const d = p.disclosures[rand(p.disclosures.length)];
-      const field = fields[rand(fields.length)];
-      if (field === "proof") {
-        const j = rand(d.proof.length);
-        d.proof[j] = flip(d.proof[j]);
-      } else {
-        d[field] = flip(d[field]);
+    const tested = { salt: 0, key: 0, value: 0, proof: 0 };
+    const perPair = Math.ceil(200 / (untouched.disclosures.length * fields.length));
+    for (let i = 0; i < untouched.disclosures.length; i++) {
+      for (const field of fields) {
+        for (let k = 0; k < perPair; k++) {
+          const p: Presentation = structuredClone(untouched);
+          const d = p.disclosures[i];
+          if (field === "proof") {
+            const j = rand(d.proof.length);
+            d.proof[j] = flip(d.proof[j]);
+          } else {
+            d[field] = flip(d[field]);
+          }
+          const r = await verifyPresentation(p);
+          expect(r.valid, `${d.name}.${field} #${k}`).toBe(false);
+          tested[field]++;
+        }
       }
-      const r = await verifyPresentation(p);
-      expect(r.valid, `case ${k}: ${d.name}.${field}`).toBe(false);
     }
+    for (const field of fields) expect(tested[field], field).toBeGreaterThanOrEqual(50);
+    expect(tested.salt + tested.key + tested.value + tested.proof).toBeGreaterThanOrEqual(200);
   });
 });
