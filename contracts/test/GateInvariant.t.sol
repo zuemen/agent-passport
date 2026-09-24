@@ -2,21 +2,40 @@
 pragma solidity 0.8.28;
 
 import {PassportGate} from "../src/PassportGate.sol";
+import {CredentialStatusRegistry} from "../src/CredentialStatusRegistry.sol";
 import {PassportFixture} from "./utils/PassportFixture.sol";
 
 /// @dev Fuzzed actor: a relying party that keeps asking the gate to authorize random amounts,
-///      across random time jumps. Rejected calls are expected and swallowed.
+///      across random time jumps, now and then replays an intent the gate already authorized, and at
+///      some point sees the owner revoke the mandate. Rejected calls are expected and swallowed.
 contract GateHandler is PassportFixture {
     PassportGate internal g;
+    CredentialStatusRegistry internal reg;
+    address internal principal;
     bytes32 internal cid;
     address internal asset;
     uint256 internal key;
     PassportGate.Presentation internal pres;
     uint256 public nonce;
     uint256 public maxSingleAuthorized;
+    bool public revoked;
+    uint256 public authorizedAfterRevoke;
+    uint256 public replaysAccepted;
+    PassportGate.ActionIntent internal lastIntent;
+    bytes internal lastSig;
 
-    constructor(PassportGate g_, bytes32 cid_, address asset_, uint256 key_, PassportGate.Presentation memory p) {
+    constructor(
+        PassportGate g_,
+        CredentialStatusRegistry reg_,
+        address principal_,
+        bytes32 cid_,
+        address asset_,
+        uint256 key_,
+        PassportGate.Presentation memory p
+    ) {
         g = g_;
+        reg = reg_;
+        principal = principal_;
         cid = cid_;
         asset = asset_;
         key = key_;
@@ -35,9 +54,29 @@ contract GateHandler is PassportFixture {
             cid, keccak256("dex.swap"), asset, amount, address(this), ++nonce, vm.getBlockTimestamp() + 60
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, g.hashIntent(i));
-        try g.authorize(i, pres, abi.encodePacked(r, s, v)) {
+        bytes memory sig = abi.encodePacked(r, s, v);
+        try g.authorize(i, pres, sig) {
             if (amount > maxSingleAuthorized) maxSingleAuthorized = amount;
+            if (revoked) ++authorizedAfterRevoke;
+            lastIntent = i;
+            lastSig = sig;
         } catch {}
+    }
+
+    /// Submit the last authorized intent again, unchanged.
+    function replay() external {
+        if (lastSig.length == 0) return;
+        try g.authorize(lastIntent, pres, lastSig) {
+            ++replaysAccepted;
+        } catch {}
+    }
+
+    /// The owner revokes the mandate: once, after at least 40 actions, on about one call in eight.
+    function revoke(uint256 seed) external {
+        if (revoked || nonce < 40 || seed % 8 != 0) return;
+        vm.prank(principal);
+        reg.revoke(cid, "invariant");
+        revoked = true;
     }
 }
 
@@ -54,11 +93,13 @@ contract GateInvariantTest is PassportFixture {
         address predicted = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
         _defaultClaims(ASSET, MAX, DAILY, predicted);
         _anchor(CID);
-        handler = new GateHandler(gate, CID, ASSET, agentKey, _presentation(CID));
+        handler = new GateHandler(gate, status, owner, CID, ASSET, agentKey, _presentation(CID));
         assertEq(address(handler), predicted);
         targetContract(address(handler));
-        bytes4[] memory selectors = new bytes4[](1);
+        bytes4[] memory selectors = new bytes4[](3);
         selectors[0] = GateHandler.act.selector;
+        selectors[1] = GateHandler.replay.selector;
+        selectors[2] = GateHandler.revoke.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 
@@ -67,5 +108,15 @@ contract GateInvariantTest is PassportFixture {
     function invariant_spendWithinLimits() public view {
         assertLe(gate.spentToday(CID, ASSET), DAILY);
         assertLe(handler.maxSingleAuthorized(), MAX);
+    }
+
+    /// Once the owner revokes the mandate, the gate never authorizes another action under it.
+    function invariant_neverAuthorizedAfterRevocation() public view {
+        assertEq(handler.authorizedAfterRevoke(), 0);
+    }
+
+    /// An intent the gate authorized is never authorized a second time (single-use nonces).
+    function invariant_noIntentAuthorizedTwice() public view {
+        assertEq(handler.replaysAccepted(), 0);
     }
 }
