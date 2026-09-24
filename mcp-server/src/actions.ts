@@ -1,4 +1,6 @@
 import {
+  BaseError,
+  ContractFunctionRevertedError,
   createWalletClient,
   http,
   isAddressEqual,
@@ -10,6 +12,7 @@ import {
   type PublicClient,
 } from "viem";
 import {
+  REASONS,
   agentIdentityRegistryAbi,
   buildIntent,
   checkAuthorization,
@@ -90,37 +93,51 @@ export async function executeAction(
   });
   if (!pre.authorized && !a.forceSubmit) return { executed: false, stoppedBy: "pre-flight", reason: pre.reason };
 
-  const intent = buildIntent({ credentialId: held.credentialId, scope: a.scope, asset: a.asset, amount: a.amount, relyingParty: a.relyingParty });
+  // Deadlines follow the chain's clock, not the local one (a skewed PC clock would expire every intent).
+  const { timestamp: now } = await ctx.client.getBlock();
+  const intent = buildIntent({ credentialId: held.credentialId, scope: a.scope, asset: a.asset, amount: a.amount, relyingParty: a.relyingParty, now });
   const signature = await signIntent(ctx.agent, ctx.chain.id, ctx.gate, intent);
   const wc = createWalletClient({ chain: ctx.chain, transport: http(ctx.rpcUrl), account: ctx.agent });
   const errors = passportGateAbi.filter((x) => x.type === "error");
   const gas = pre.authorized ? undefined : 400_000n; // a doomed tx cannot be estimated; cap it
 
-  const hash: Hex =
+  const call =
     a.scope === "dex.swap"
-      ? await wc.writeContract({
+      ? {
           address: a.relyingParty,
           abi: [...passportDexAbi, ...errors],
           functionName: "swap",
           args: [intent, presentation, signature, 0n],
-          gas,
-        })
-      : await wc.writeContract({
+        }
+      : {
           address: a.relyingParty,
           abi: [...passportMerchantAbi, ...errors],
           functionName: "pay",
           args: [toHex(crypto.getRandomValues(new Uint8Array(32))), intent, presentation, signature],
-          gas,
-        });
+        };
+  const hash: Hex = await wc.writeContract({ ...call, gas } as never);
   const receipt = await ctx.client.waitForTransactionReceipt({ hash });
   const ok = receipt.status === "success";
   return {
     executed: ok,
     stoppedBy: ok ? undefined : "on-chain",
-    reason: ok ? "Ok" : pre.reason,
+    reason: ok ? "Ok" : ((await revertReason(ctx, call, receipt.blockNumber)) ?? pre.reason),
     txHash: hash,
     txUrl: `${ctx.explorer}/tx/${hash}`,
     status: receipt.status,
     block: receipt.blockNumber.toString(),
   };
+}
+
+/** Why a sent action reverted: replay it at its block and decode the gate's error. */
+async function revertReason(ctx: ActionContext, call: object, blockNumber: bigint): Promise<string | undefined> {
+  try {
+    await ctx.client.simulateContract({ ...call, account: ctx.agent, blockNumber } as never);
+  } catch (e) {
+    const err = e instanceof BaseError ? e.walk((x) => x instanceof ContractFunctionRevertedError) : null;
+    const data = err instanceof ContractFunctionRevertedError ? err.data : undefined;
+    if (data?.errorName === "NotAuthorized") return REASONS[Number(data.args?.[0])];
+    return data?.errorName;
+  }
+  return undefined;
 }

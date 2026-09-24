@@ -40,8 +40,9 @@ const pre = await checkAuthorization(publicClient as never, C.passportGate, {
 if (!pre.authorized) throw new Error(`mandate cannot cover ${N} × 5 apUSD today: ${pre.reason} (issue a fresh one)`);
 
 const abi = [...passportDexAbi, ...passportGateAbi.filter((x) => x.type === "error")];
+const { timestamp: now } = await publicClient.getBlock(); // chain time, not the local clock
 const intents = Array.from({ length: N }, () =>
-  buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount: AMOUNT, relyingParty: C.passportDex }),
+  buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount: AMOUNT, relyingParty: C.passportDex, now }),
 );
 const sigs = await Promise.all(intents.map((i) => signIntent(agent.account as never, 10143, C.passportGate, i)));
 const gas =

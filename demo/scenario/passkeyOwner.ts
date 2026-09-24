@@ -165,7 +165,8 @@ export class PasskeyOwnerFlow {
     const agent = this.a.agent;
     const h = held(this);
     const abi = [...passportDexAbi, ...passportGateAbi.filter((x) => x.type === "error")];
-    const intent = buildIntent({ credentialId: h.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex });
+    const { timestamp: now } = await pc.getBlock(); // chain time, not the local clock
+    const intent = buildIntent({ credentialId: h.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex, now });
     const signature = await signIntent(agent.account as never, 10143, C.passportGate, intent);
     const presentation = toGatePresentation(h, { scope: "dex.swap", asset: C.demoUsd, relyingParty: C.passportDex });
     let reason: string | undefined;

@@ -143,6 +143,7 @@ export function randomNonce(): bigint {
   return hexToBigInt(bytesToHex(crypto.getRandomValues(new Uint8Array(32))));
 }
 
+/** `now` defaults to the local clock; pass the latest block timestamp so a skewed PC clock cannot expire the intent. */
 export function buildIntent(opts: {
   credentialId: Hex;
   scope: string;

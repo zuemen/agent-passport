@@ -35,9 +35,16 @@ async function reachable(url: string): Promise<Response | undefined> {
 async function checkChain() {
   const t0 = Date.now();
   try {
-    const [chainId, block] = await Promise.all([client.getChainId(), client.getBlockNumber()]);
+    const [chainId, block] = await Promise.all([client.getChainId(), client.getBlock()]);
     if (chainId !== 10143) return report("fail", "Monad testnet RPC", `chain id ${chainId}, expected 10143`);
-    report("ok", "Monad testnet RPC", `block ${block}, ${Date.now() - t0} ms`);
+    report("ok", "Monad testnet RPC", `block ${block.number}, ${Date.now() - t0} ms`);
+    // Intents take their deadline from the chain, but a skewed PC clock still confuses logs and explorers.
+    const skew = Number(block.timestamp) - Math.floor(Date.now() / 1000);
+    report(
+      Math.abs(skew) <= 60 ? "ok" : "warn",
+      "Local clock",
+      Math.abs(skew) <= 60 ? `within ${Math.abs(skew)} s of the chain` : `${skew > 0 ? "behind" : "ahead of"} the chain by ${Math.abs(skew)} s — sync Windows time (Settings → Time & language → Sync now)`,
+    );
   } catch (e) {
     report("fail", "Monad testnet RPC", `unreachable (${(e as Error).message.split("\n")[0]}); set MONAD_TESTNET_RPC_URL`);
   }
