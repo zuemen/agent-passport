@@ -24,7 +24,8 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
 - **147 tests** (99 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
   Identity and Reputation registries on Monad. CI on every push runs the contract suite twice — on the Ethereum EVM
-  and on Foundry's Monad EVM (`--network monad`) — and the fork tests (skipped only when the public RPC is down).
+  and on Foundry's Monad EVM (`--network monad`) — the fork tests (skipped only when the public RPC is down), and a
+  mutation check: 12 mutants, each removing one rule of the gate or of grounded feedback, all caught by the tests.
 - **Check it yourself with no keys and no MON** — decode the refusals, fork the official registries, or run the
   whole demo on a local chain: [five commands](#verify-it-yourself--no-keys-no-mon).
 
@@ -199,6 +200,7 @@ testnet transaction; each was run that way on a fresh clone:
 | The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (PowerShell: set `$env:MONAD_FORK_URL="https://testnet-rpc.monad.xyz"` first; Foundry 1.7 and older have no Monad network: leave out `--network monad`) | `3 tests passed` (official Identity and Reputation) |
 | The whole storyline on your machine | `npm run scenario:local -w demo` | 5 setup transactions, then the storyline's 9; refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked` |
 | Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions |
+| The tests notice a missing rule | `cd contracts && bash script/mutants.sh` (about 8 minutes) | 12 mutants killed, the control survives ([table](docs/BENCHMARKS.md#mutation-check)) |
 | Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | forge: `97 tests passed, 0 failed, 1 skipped` on Foundry 1.8 (it prints the 3 invariants as one test, so 99 on 1.7; the skip is the fork suite without `MONAD_FORK_URL`) · 22 · 20 · 6 passed |
 
 The SDK and MCP tests start anvil on ports 18546–18548; the local mode uses 18549 (anvil), 18790 (API) and 15173
@@ -345,7 +347,7 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 `npm run why -w demo -- 0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c` → `NotAuthorized(PayeeNotAllowed)`.
 
 ## Status
-- [x] Contracts — 99 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
+- [x] Contracts — 99 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; a [mutation check](docs/BENCHMARKS.md#mutation-check) (12 mutants, all killed); 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, 200 random tamperings of a presentation
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, local-chain mode (no keys, no MON; in CI), concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode

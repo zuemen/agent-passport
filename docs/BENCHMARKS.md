@@ -151,4 +151,30 @@ the check-only example in [`contracts/test/examples/`](../contracts/test/example
 Foundry 1.8 prints the three invariants as one test: `97 tests passed, 0 failed, 1 skipped` (the skip is the fork
 suite when `MONAD_FORK_URL` is not set); Foundry 1.7 prints 99.
 
+## Mutation check
+
+Do the tests notice when a rule is missing? `cd contracts && bash script/mutants.sh` (about 8 minutes locally; in CI
+on every push) removes one rule at a time from a scratch copy of `contracts/` and runs the tests that should
+catch it. It never modifies the repository.
+
+| Mutant — what it breaks | Must fail | Result |
+|---|---|---|
+| Revoked or expired mandates still pass | `invariant_neverAuthorizedAfterRevocation` | killed |
+| An authorized intent can be replayed | `invariant_noIntentAuthorizedTwice` | killed |
+| No daily limit | `invariant_spendWithinLimits` | killed |
+| No per-transaction limit | `test_revert_exceedsPerTx` | killed |
+| Any scope accepted | `test_check_scopeNotGranted` | killed |
+| Any counterparty accepted | `test_revert_payeeNotAllowed` | killed |
+| Disclosed claims not proven | `test_check_tamperedDisclosure` | killed |
+| The agent's signature not checked | `test_revert_signatureFromWrongKey` | killed |
+| Another contract can use the intent | `test_revert_wrongRelyingParty` | killed |
+| vLEI requirement ignored | `test_vlei_requiredScope_rejectsUnverifiedOwner` | killed |
+| Anyone can rate an action (`GroundedFeedback`) | `test_groundedFeedback_reverts` | killed |
+| An action can be rated twice (`GroundedFeedback`) | `test_groundedFeedback_reverts` | killed |
+| *Control:* the same code, rewritten without changing its meaning | `test_revert_exceedsDaily_thenResetsNextDay` | survives, as it should |
+
+Each invariant is killed by the mutant aimed at it, so none of the three passes vacuously. A mutant counts as
+killed only when a named test reports `[FAIL]`; one that does not compile or run fails the script. The SDK's
+tampering test gets the same treatment by hand: with its digit flip disabled, it fails on the first case.
+
 Static analysis: Slither 0.11.6, triage in [SECURITY.md](SECURITY.md#static-analysis-slither-0116).
