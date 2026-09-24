@@ -178,6 +178,8 @@ cd contracts && forge test && cd ..            # 95 tests (+ 3 fork tests with M
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 21 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
+npm run scenario:local -w demo                 # the whole storyline on a local anvil chain — no keys, no MON
+npm run local -w demo                          # live mode against that local chain: click through it at localhost:15173
 cp .env.example .env                           # testnet keys for the scenario / live mode (see below)
 npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
 npm run why -w demo -- <txHash>                # read-only: why did a transaction revert (from its trace, or a replay)

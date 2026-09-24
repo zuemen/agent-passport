@@ -1,6 +1,5 @@
 import { maxUint256, parseEventLogs, type Address, type Hex } from "viem";
 import {
-  MONAD_TESTNET as C,
   REASONS,
   agentIdentityRegistryAbi,
   buildIntent,
@@ -24,7 +23,7 @@ import {
   type PasskeyCall,
   type WebAuthnAssertion,
 } from "@agent-passport/sdk";
-import { actors } from "./env.js";
+import { CHAIN_ID, actors, deployment as C } from "./env.js";
 
 export interface PasskeyStep {
   step: string;
@@ -119,7 +118,7 @@ export class PasskeyOwnerFlow {
     const { timestamp } = await pc.getBlock();
     this.held = await issueCredential(
       {
-        chainId: 10143,
+        chainId: CHAIN_ID,
         identityRegistry: C.identityRegistry,
         statusRegistry: C.credentialStatusRegistry,
         agentId: this.agentId,
@@ -137,7 +136,7 @@ export class PasskeyOwnerFlow {
 
     const deadline = timestamp + 240n;
     const agentSig = await agent.account!.signTypedData!({
-      domain: { name: "AgentPassportIdentity", version: "1", chainId: 10143, verifyingContract: C.identityRegistry },
+      domain: { name: "AgentPassportIdentity", version: "1", chainId: CHAIN_ID, verifyingContract: C.identityRegistry },
       types: {
         AgentWalletSet: [
           { name: "agentId", type: "uint256" },
@@ -168,7 +167,7 @@ export class PasskeyOwnerFlow {
     const abi = [...passportDexAbi, ...passportGateAbi.filter((x) => x.type === "error")];
     const now = await chainNow(pc as never); // chain time, not the local clock
     const intent = buildIntent({ credentialId: h.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex, now });
-    const signature = await signIntent(agent.account as never, 10143, C.passportGate, intent);
+    const signature = await signIntent(agent.account as never, CHAIN_ID, C.passportGate, intent);
     const presentation = toGatePresentation(h, { scope: "dex.swap", asset: C.demoUsd, relyingParty: C.passportDex });
     let reason: string | undefined;
     try {

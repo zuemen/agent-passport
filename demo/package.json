@@ -14,7 +14,9 @@
     "passkey": "tsx scenario/passkey.ts",
     "preflight": "tsx scenario/preflight.ts",
     "gas": "tsx scenario/gas.ts",
-    "why": "tsx scenario/why.ts"
+    "why": "tsx scenario/why.ts",
+    "local": "tsx scenario/local.ts",
+    "scenario:local": "tsx scenario/local.ts --scenario"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

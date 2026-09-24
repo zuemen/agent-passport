@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { toHex, type Hex } from "viem";
-import { MONAD_TESTNET, type WebAuthnAssertion } from "@agent-passport/sdk";
+import { type WebAuthnAssertion } from "@agent-passport/sdk";
+import { deployment } from "./env.js";
 import { Scenario } from "./scenario.js";
 import { PasskeyOwnerFlow } from "./passkeyOwner.js";
 import type { StepLog } from "./types.js";
@@ -26,7 +27,7 @@ const steps: Record<string, (s: Scenario) => Promise<unknown>> = {
   "swap-over": (s) => s.swap("swap-over", "Agent tries 150 apUSD — over its per-transaction limit", 150, { expect: "rejected" }),
   "swap-injected": (s) =>
     s.swap("swap-injected", "Prompt-injected agent routes 50 apUSD through a look-alike DEX", 50, {
-      dex: MONAD_TESTNET.lookalikeDex,
+      dex: deployment.lookalikeDex,
       expect: "rejected",
     }),
   "pay-unverified": (s) => s.pay("pay-unverified", "Agent pays a merchant that requires a vLEI-verified owner", 5, "rejected"),

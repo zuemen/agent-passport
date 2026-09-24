@@ -23,3 +23,6 @@ mcp-server/credentials/
 demo/.state/
 demo/dist/
 verifier/.state/
+# Local chain mode (npm run local / scenario:local)
+demo/.state-local/
+contracts/deployments/31337.json

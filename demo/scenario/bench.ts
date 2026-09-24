@@ -2,7 +2,6 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Hex } from "viem";
 import {
-  MONAD_TESTNET as C,
   buildIntent,
   chainNow,
   checkAuthorization,
@@ -11,7 +10,7 @@ import {
   signIntent,
   toGatePresentation,
 } from "@agent-passport/sdk";
-import { repoRoot } from "./env.js";
+import { CHAIN_ID, EXPLORER, deployment as C, runsDir } from "./env.js";
 import { Scenario } from "./scenario.js";
 
 /**
@@ -45,7 +44,7 @@ const now = await chainNow(publicClient as never); // chain time, not the local 
 const intents = Array.from({ length: N }, () =>
   buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount: AMOUNT, relyingParty: C.passportDex, now }),
 );
-const sigs = await Promise.all(intents.map((i) => signIntent(agent.account as never, 10143, C.passportGate, i)));
+const sigs = await Promise.all(intents.map((i) => signIntent(agent.account as never, CHAIN_ID, C.passportGate, i)));
 const gas =
   ((await publicClient.estimateContractGas({
     address: C.passportDex,
@@ -94,7 +93,7 @@ console.log(
   `${result.succeeded}/${N} verified agent actions settled in ${result.blocksSpanned} block(s), ` +
     `${result.allReceiptsMs} ms from first submit to last receipt`,
 );
-for (const t of result.txs) console.log(`  block ${t.block} ${t.status} https://testnet.monadscan.com/tx/${t.hash}`);
-const dir = join(repoRoot, "demo", "public", "runs");
+for (const t of result.txs) console.log(`  block ${t.block} ${t.status} ${EXPLORER ? `${EXPLORER}/tx/` : "tx "}${t.hash}`);
+const dir = runsDir;
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, "bench-latest.json"), JSON.stringify(result, null, 2));

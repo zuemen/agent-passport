@@ -3,7 +3,9 @@ import type { RunLog, StepLog } from "../scenario/types";
 import { PasskeyPanel } from "./PasskeyPanel";
 import {
   C,
+  chain,
   explorerAddr,
+  isLocal,
   explorerTx,
   liveGateCheck,
   fetchLiveReport,
@@ -81,7 +83,7 @@ function Stamp({ step, big, thud }: { step: StepLog; big?: boolean; thud?: boole
   return (
     <span className={cls} style={{ ["--r" as string]: r }}>
       {agent ? "Granted" : "Recorded"}
-      <small>{agent ? "PassportGate" : "on Monad"}</small>
+      <small>{agent ? "PassportGate" : isLocal ? "on-chain" : "on Monad"}</small>
     </span>
   );
 }
@@ -89,7 +91,7 @@ function Stamp({ step, big, thud }: { step: StepLog; big?: boolean; thud?: boole
 function mrz(run: RunLog) {
   const pad = (s: string, n: number) => (s + "<".repeat(n)).slice(0, n);
   const l1 = pad("P<MON<AGENT<PASSPORT<<EXAMPLE<TREASURY<AGENT", 44);
-  const l2 = pad(`${run.agentId.padStart(9, "0")}<${run.credentialId.slice(2, 22).toUpperCase()}<10143<ERC8004`, 44);
+  const l2 = pad(`${run.agentId.padStart(9, "0")}<${run.credentialId.slice(2, 22).toUpperCase()}<${chain.id}<ERC8004`, 44);
   return `${l1}\n${l2}`;
 }
 
@@ -126,8 +128,11 @@ export default function App() {
 
   useEffect(() => {
     loadRecordedRun().then(setRun);
-    fetch(`${import.meta.env.BASE_URL}runs/bench-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setBench, () => {});
-    fetch(`${import.meta.env.BASE_URL}runs/mcp-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setMcp, () => {});
+    // The benchmark and the MCP session were recorded on Monad testnet; a local chain shows neither.
+    if (!isLocal) {
+      fetch(`${import.meta.env.BASE_URL}runs/bench-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setBench, () => {});
+      fetch(`${import.meta.env.BASE_URL}runs/mcp-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setMcp, () => {});
+    }
     probeLive().then(async (ok) => {
       setLive(ok);
       if (!ok) return;
@@ -198,16 +203,16 @@ export default function App() {
         <div className="mast-meta">
           <span className={`chip ${live ? "live" : ""}`}>
             <span className="dot" />
-            {live ? "Live · sending to Monad testnet" : "Recorded run · Monad testnet"}
+            {live ? (isLocal ? "Live · local chain (anvil)" : "Live · sending to Monad testnet") : "Recorded run · Monad testnet"}
           </span>
           <a className="chip" href={explorerAddr(C.passportGate)} target="_blank" rel="noreferrer">
             PassportGate {short(C.passportGate)}
           </a>
-          <span className="eyebrow">chain 10143 · block {liveState?.block.toString() ?? "…"}</span>
+          <span className="eyebrow">chain {chain.id} · block {liveState?.block.toString() ?? "…"}</span>
         </div>
       </header>
 
-      <section className="metrics" aria-label="Measured on Monad testnet">
+      <section className="metrics" aria-label={isLocal ? "Measured on the local chain" : "Measured on Monad testnet"}>
         <div className="metric"><div className="v">{run.metrics.medianLatencyMs}<small>ms</small></div><div className="k">median submit → receipt</div></div>
         <div className="metric"><div className="v">{run.verifierView.disclosed.length}<small>/ {run.verifierView.disclosed.length + run.verifierView.hiddenClaimCount} claims</small></div><div className="k">disclosed to the DEX, each Merkle-proven</div></div>
         {bench ? (

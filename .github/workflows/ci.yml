@@ -43,3 +43,21 @@ jobs:
       - run: npm test -w mcp-server
       - run: npm test -w @agent-passport/verifier
       - run: npm run build -w demo
+
+  local-scenario:
+    # The whole storyline on a fresh local chain: deploy, issue, act, refuse, revoke — no keys, no testnet.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: forge build
+        working-directory: contracts
+      - run: npm ci
+      - run: npm run build -w sdk
+      - run: npm run scenario:local -w demo

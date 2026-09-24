@@ -1,4 +1,4 @@
-import { createPublicClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, defineChain, http, type Address, type Hex } from "viem";
 import {
   MONAD_TESTNET,
   checkAuthorization,
@@ -9,12 +9,23 @@ import {
 } from "@agent-passport/sdk";
 import type { RunLog, StepLog } from "../scenario/types";
 
-export const C = MONAD_TESTNET;
-export const client = createPublicClient({ chain: monadTestnet, transport: http() });
+// `npm run local -w demo` serves the app against a local anvil chain and passes its deployment in.
+const localDeployment = import.meta.env.VITE_LOCAL_DEPLOYMENT as string | undefined;
+export const isLocal = import.meta.env.VITE_DEMO_NETWORK === "local" && !!localDeployment;
+const localChain = defineChain({
+  id: 31337,
+  name: "Local anvil",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [(import.meta.env.VITE_LOCAL_RPC as string | undefined) ?? "http://127.0.0.1:18549"] } },
+});
+export const chain = isLocal ? localChain : monadTestnet;
+export const C = (isLocal ? JSON.parse(localDeployment!) : MONAD_TESTNET) as typeof MONAD_TESTNET;
+export const client = createPublicClient({ chain, transport: http() });
 export const API = (import.meta.env.VITE_DEMO_API as string | undefined) ?? "http://127.0.0.1:18790";
 
-export const explorerTx = (h: string) => `https://testnet.monadscan.com/tx/${h}`;
-export const explorerAddr = (a: string) => `https://testnet.monadscan.com/address/${a}`;
+// A local chain has no explorer: links stay on the page.
+export const explorerTx = (h: string) => (isLocal ? `#tx-${h}` : `https://testnet.monadscan.com/tx/${h}`);
+export const explorerAddr = (a: string) => (isLocal ? `#address-${a}` : `https://testnet.monadscan.com/address/${a}`);
 export const short = (h?: string, n = 6) => (h ? `${h.slice(0, n + 2)}…${h.slice(-4)}` : "—");
 
 export async function loadRecordedRun(): Promise<RunLog> {

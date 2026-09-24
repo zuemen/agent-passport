@@ -11,7 +11,6 @@ import {
   type WalletClient,
 } from "viem";
 import {
-  MONAD_TESTNET,
   agentIdentityRegistryAbi,
   buildIntent,
   chainNow,
@@ -32,15 +31,12 @@ import {
   toGatePresentation,
   type HeldCredential,
 } from "@agent-passport/sdk";
-import { actors, repoRoot } from "./env.js";
+import { CHAIN_ID, EXPLORER, actors, credentialsDir, deployment, stateDir } from "./env.js";
 import type { Role, RunLog, StepLog } from "./types.js";
 
-const C = MONAD_TESTNET;
-const CHAIN_ID = 10143;
-const EXPLORER = "https://testnet.monadscan.com";
+const C = deployment;
 const USD = (n: number) => BigInt(Math.round(n * 1e6));
 const gateErrors = passportGateAbi.filter((x) => x.type === "error");
-const stateDir = join(repoRoot, "demo", ".state");
 
 function decodeRevert(e: unknown): string {
   if (e instanceof BaseError) {
@@ -250,8 +246,8 @@ export class Scenario {
     mkdirSync(stateDir, { recursive: true });
     writeFileSync(join(stateDir, "credential.json"), serializeCredential(this.held));
     // The agent-side MCP server reads its credentials from here.
-    mkdirSync(join(repoRoot, "mcp-server", "credentials"), { recursive: true });
-    writeFileSync(join(repoRoot, "mcp-server", "credentials", `agent-${a.agentId}.json`), serializeCredential(this.held));
+    mkdirSync(credentialsDir, { recursive: true });
+    writeFileSync(join(credentialsDir, `agent-${a.agentId}.json`), serializeCredential(this.held));
   }
 
   loadCredential() {
