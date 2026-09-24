@@ -5,9 +5,9 @@ import {PassportGate} from "../src/PassportGate.sol";
 import {CredentialStatusRegistry} from "../src/CredentialStatusRegistry.sol";
 import {PassportFixture} from "./utils/PassportFixture.sol";
 
-/// @dev Fuzzed actor: a relying party that keeps asking the gate to authorize random amounts,
-///      across random time jumps, now and then replays an intent the gate already authorized, and at
-///      some point sees the owner revoke the mandate. Rejected calls are expected and swallowed.
+/// @dev Fuzzed actor: a relying party that keeps asking the gate to authorize random amounts across random
+///      time jumps, immediately resubmits every intent the gate authorized, and at some point sees the owner
+///      revoke the mandate. Rejected calls are expected and swallowed.
 contract GateHandler is PassportFixture {
     PassportGate internal g;
     CredentialStatusRegistry internal reg;
@@ -21,8 +21,6 @@ contract GateHandler is PassportFixture {
     bool public revoked;
     uint256 public authorizedAfterRevoke;
     uint256 public replaysAccepted;
-    PassportGate.ActionIntent internal lastIntent;
-    bytes internal lastSig;
 
     constructor(
         PassportGate g_,
@@ -58,16 +56,10 @@ contract GateHandler is PassportFixture {
         try g.authorize(i, pres, sig) {
             if (amount > maxSingleAuthorized) maxSingleAuthorized = amount;
             if (revoked) ++authorizedAfterRevoke;
-            lastIntent = i;
-            lastSig = sig;
-        } catch {}
-    }
-
-    /// Submit the last authorized intent again, unchanged.
-    function replay() external {
-        if (lastSig.length == 0) return;
-        try g.authorize(lastIntent, pres, lastSig) {
-            ++replaysAccepted;
+            // Resubmit the same intent at the same moment: only its single-use nonce stands in the way.
+            try g.authorize(i, pres, sig) {
+                ++replaysAccepted;
+            } catch {}
         } catch {}
     }
 
@@ -92,14 +84,16 @@ contract GateInvariantTest is PassportFixture {
         // The handler is the relying party, so the payee claim names it. Deploy it at a known address:
         address predicted = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
         _defaultClaims(ASSET, MAX, DAILY, predicted);
-        _anchor(CID);
+        // Valid for ten years, so that time jumps never expire it: a refusal after revocation must come
+        // from the revocation.
+        vm.prank(owner);
+        status.anchor(CID, agentId, _root(), uint64(block.timestamp), uint64(block.timestamp + 3650 days));
         handler = new GateHandler(gate, status, owner, CID, ASSET, agentKey, _presentation(CID));
         assertEq(address(handler), predicted);
         targetContract(address(handler));
-        bytes4[] memory selectors = new bytes4[](3);
+        bytes4[] memory selectors = new bytes4[](2);
         selectors[0] = GateHandler.act.selector;
-        selectors[1] = GateHandler.replay.selector;
-        selectors[2] = GateHandler.revoke.selector;
+        selectors[1] = GateHandler.revoke.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 

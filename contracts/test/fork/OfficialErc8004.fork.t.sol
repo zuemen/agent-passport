@@ -161,6 +161,16 @@ contract OfficialErc8004ForkTest is Test {
             if (clients[i] == address(feedback)) found = true;
         }
         assertTrue(found, "GroundedFeedback is a client of the agent in the official registry");
+        // ...and the official summary counts exactly that one grounded rating.
+        address[] memory only = new address[](1);
+        only[0] = address(feedback);
+        (bool ok, bytes memory ret) = OFFICIAL_REPUTATION.staticcall(
+            abi.encodeWithSignature(
+                "getSummary(uint256,address[],string,string)", agentId, only, feedback.TAG(), "settled"
+            )
+        );
+        assertTrue(ok, "official getSummary");
+        assertEq(abi.decode(ret, (uint256)), 1, "one grounded feedback in the official summary");
 
         vm.expectRevert(GroundedFeedback.AlreadyRated.selector);
         feedback.rate(actionId, 100, 0, "settled", "");

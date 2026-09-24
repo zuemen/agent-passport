@@ -112,8 +112,8 @@ the check-only example in [`contracts/test/examples/`](../contracts/test/example
 |---|---|---|
 | Contracts (unit, every gate reason code, fuzz, 3 invariants, check-only example) | 95 | `cd contracts && forge test` |
 | Fork tests against the official ERC-8004 Identity and Reputation registries | 3 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
-| SDK (incl. end-to-end on anvil, passkey owners, deployment consistency) | 20 | `npm test -w sdk` |
-| MCP server | 19 | `npm test -w mcp-server` |
+| SDK (incl. end-to-end on anvil, passkey owners, deployment consistency, revert decoding) | 21 | `npm test -w sdk` |
+| MCP server | 20 | `npm test -w mcp-server` |
 | vLEI verifier | 6 | `npm test -w @agent-passport/verifier` |
 
 Static analysis: Slither 0.11.6, triage in [SECURITY.md](SECURITY.md#static-analysis-slither-0116).

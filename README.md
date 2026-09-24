@@ -21,7 +21,7 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
   passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
-- **140 tests** (95 contract · 20 SDK · 19 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
+- **142 tests** (95 contract · 21 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
   Identity and Reputation registries on Monad; CI on every push (its fork job tolerates public-RPC outages).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
@@ -175,11 +175,11 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
 cd contracts && forge test && cd ..            # 95 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
 npm install && npm run build -w sdk && npm run build -w mcp-server
-npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 20 + 19 + 6 tests
+npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 21 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
 cp .env.example .env                           # testnet keys for the scenario / live mode (see below)
 npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
-npm run why -w demo -- <txHash>                # read-only: why did a transaction revert (decodes the gate's reason)
+npm run why -w demo -- <txHash>                # read-only: why did a transaction revert (the gate's reason, from its trace)
 npm run scenario -w demo                       # the whole storyline on Monad testnet
 npm run api -w demo                            # live mode: the app sends real testnet transactions
 ```
@@ -250,8 +250,9 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 Median submit → receipt latency in this run: **827 ms**. The agent wallet never receives the tokens —
 PassportGate pulls each authorized amount from the owner, and the DEX pays its output to the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
-Explorers show a reverted transaction as failed without the reason. `npm run why -w demo -- <tx>` replays it at
-its block (read-only) and decodes the error; for the four refusals above it returns exactly the reasons in the
+Explorers show a reverted transaction as failed without the reason. `npm run why -w demo -- <tx>` reads it from the
+transaction's call trace (Monad's RPC serves `debug_traceTransaction`; otherwise it replays the call at its block —
+read-only either way) and decodes the error; for the four refusals above it returns exactly the reasons in the
 table — `NotAuthorized(ExceedsPerTxLimit)`, `NotAuthorized(PayeeNotAllowed)`, `NotAuthorized(OwnerNotVleiVerified)`,
 `NotAuthorized(Revoked)`.
 
@@ -306,8 +307,8 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 
 ## Status
 - [x] Contracts — 95 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — and a check-only integration example) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
-- [x] SDK — 20 tests incl. end-to-end on anvil, passkey owners, and SDK addresses = the deployment record
-- [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
+- [x] SDK — 21 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding
+- [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
 - [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))

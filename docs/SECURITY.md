@@ -82,6 +82,6 @@ tracked here instead of patched.
 ## Tests
 95 Foundry tests (unit, every gate reason code, fuzz, and three invariants under random amounts, time jumps,
 replays and a revocation: today's booked spend never exceeds the daily limit, nothing is authorized after the
-mandate is revoked, and no authorized intent is accepted twice), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 20 SDK tests
-(incl. end-to-end on anvil and passkey owners), 19 MCP tests (incl. HTTP transport guards) and 6 vLEI
+mandate is revoked, and no authorized intent is accepted twice), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 21 SDK tests
+(incl. end-to-end on anvil and passkey owners), 20 MCP tests (incl. HTTP transport guards) and 6 vLEI
 verifier tests.
