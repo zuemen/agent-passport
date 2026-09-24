@@ -96,19 +96,20 @@ tests. Medians include calls that revert inside the tests.
 | AgentValidationRegistry | 96.08% (49/51) | 83.33% (10/12) | 88.89% (8/9) |
 | GroundedFeedback | 100% (11/11) | 100% (3/3) | 100% (2/2) |
 | PasskeyAccount | 93.55% (29/31) | 100% (4/4) | 85.71% (6/7) |
-| PassportGuarded | 60.00% (6/10) | 50.00% (1/2) | 66.67% (2/3) |
+| PassportGuarded | 100% (10/10) | 100% (2/2) | 100% (3/3) |
 | PassportClaims | 100% (8/8) | — | 100% (4/4) |
 | Demo contracts (PassportDex, PassportMerchant, MockToken) | 80.95% · 100% · 50% | 71.43% · 33.33% · — | 100% · 100% · 50% |
-| **All** | **84.67% (453/535)** | **82.41% (89/108)** | **91.00% (91/100)** |
+| **All of `src/`** | **95.36% (370/388)** | **87.25% (89/102)** | **93.98% (78/83)** |
 
-`PassportGuarded` is low because both demo relying parties use the owner-funded `_pullWithPassport`; the
-check-only `_requirePassport` path has no test yet.
+Both `PassportGuarded` styles are covered: `_pullWithPassport` by the demo relying parties, `_requirePassport` by
+the check-only example in [`contracts/test/examples/`](../contracts/test/examples). The totals count `src/` only
+(forge's own "Total" also counts test helpers and scripts).
 
 ## Test suites
 
 | Suite | Tests | Command |
 |---|---|---|
-| Contracts (unit, every gate reason code, fuzz, invariant) | 87 | `cd contracts && forge test` |
+| Contracts (unit, every gate reason code, fuzz, invariant, check-only example) | 93 | `cd contracts && forge test` |
 | Fork tests against the official ERC-8004 Identity Registry | 2 | `MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
 | SDK (incl. end-to-end on anvil, passkey owners) | 18 | `npm test -w sdk` |
 | MCP server | 19 | `npm test -w mcp-server` |

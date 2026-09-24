@@ -19,6 +19,7 @@ Three ways to accept AI agents, from fully on-chain to agent-side. All addresses
 | Funds | The gate transfers `intent.amount` of `intent.asset` **from the agent's owner to your contract** | You take funds as you normally would (typically from the agent wallet) |
 | Returns | `(actionId, payer)` — `payer` is the owner | `(actionId, agentId)` |
 | Gate call | `PassportGate.authorizeAndPull` | `PassportGate.authorize` |
+| Example | [`PassportMerchant`](../contracts/src/demo/PassportMerchant.sol), [`PassportDex`](../contracts/src/demo/PassportDex.sol) (deployed) | [`PassportMeteredApi`](../contracts/test/examples/PassportMeteredApi.sol) (a pay-per-call API billing the agent's own wallet; test-only) |
 
 Either way the transaction sender must be the agent wallet registered for the credential's agent
 (`CallerIsNotAgent` otherwise), and the gate reverts with `NotAuthorized(reason)` if the action is not allowed.
@@ -72,7 +73,10 @@ Checklist:
 Behaviour to copy in your tests: [`contracts/test/DemoScenario.t.sol`](../contracts/test/DemoScenario.t.sol) —
 `test_story_withinLimit_overLimit_revoke`, `test_promptInjection_lookalikeDexRejected`,
 `test_revert_callerIsNotAgent`, `test_merchant_requiresVerifiedOwner`,
-`test_settledSwapsBuildGroundedReputation`.
+`test_settledSwapsBuildGroundedReputation`; for the check-only style,
+[`contracts/test/examples/PassportMeteredApi.t.sol`](../contracts/test/examples/PassportMeteredApi.t.sol) — the agent pays
+from its own wallet, and the gate still books every call against the owner's daily limit
+(`test_checkOnly_dailyLimitIsBooked`).
 
 ### What the gate checks, and why it says no
 

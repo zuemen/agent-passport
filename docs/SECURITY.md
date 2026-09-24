@@ -76,7 +76,7 @@ merkle-tree code path does not load. Forcing uuid 11 via overrides left the tree
 tracked here instead of patched.
 
 ## Tests
-87 Foundry tests (unit, every gate reason code, fuzz, an invariant that today's booked spend never exceeds the
+93 Foundry tests (unit, every gate reason code, fuzz, an invariant that today's booked spend never exceeds the
 daily limit), 2 fork tests against the official ERC-8004 Identity Registry on Monad testnet, 18 SDK tests
 (incl. end-to-end on anvil and passkey owners), 19 MCP tests (incl. HTTP transport guards) and 6 vLEI
 verifier tests.
