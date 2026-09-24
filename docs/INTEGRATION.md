@@ -117,7 +117,9 @@ The SDK (`@agent-passport/sdk`, the `sdk/` workspace; viem) builds and signs the
 import { MONAD_TESTNET as C, buildIntent, signIntent, toGatePresentation, checkAuthorization, passportDexAbi } from "@agent-passport/sdk";
 
 // The agent: sign one action and select the four claims the gate needs.
-const intent = buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex });
+// Take the deadline from the chain, not the local clock.
+const { timestamp: now } = await publicClient.getBlock();
+const intent = buildIntent({ credentialId: held.credentialId, scope: "dex.swap", asset: C.demoUsd, amount, relyingParty: C.passportDex, now });
 const signature = await signIntent(agentAccount, 10143, C.passportGate, intent);
 const presentation = toGatePresentation(held, { scope: "dex.swap", asset: C.demoUsd, relyingParty: C.passportDex });
 
@@ -127,7 +129,8 @@ const { authorized, reason } = await checkAuthorization(publicClient, C.passport
 });
 
 // The agent sends it; the DEX calls the gate inside the same transaction.
-if (authorized) await agentWallet.writeContract({ address: C.passportDex, abi: passportDexAbi, functionName: "swap", args: [intent, presentation, signature, 0n] });
+// minOut: your slippage bound (the demo passes 0).
+if (authorized) await agentWallet.writeContract({ address: C.passportDex, abi: passportDexAbi, functionName: "swap", args: [intent, presentation, signature, minOut] });
 ```
 
 Without the gate, `verifyPresentation` ([`sdk/src/verify.ts`](../sdk/src/verify.ts)) checks the owner's signature,
@@ -140,7 +143,7 @@ each disclosed claim and — given a client — that the credential is anchored 
 
 | Tool | Does |
 |---|---|
-| `present_passport` | Builds a presentation for a counterparty, limited by the disclosure policy (default: only the four gate claims) |
+| `present_passport` | Builds a presentation for a counterparty, limited by the disclosure policy (default: gate-type claims only — scopes, limits, payees) |
 | `verify_passport` | Verifies a presentation: the owner's signature, each disclosed claim against the credential, and that the credential is Active on Monad |
 | `check_authorization` | Asks `PassportGate.check` whether an action would pass |
 | `execute_action` | Pre-checks the action against `PassportGate`, then signs and sends it as the agent (needs `PASSPORT_AGENT_KEY`) |

@@ -1,4 +1,4 @@
-# Live agent demo — a real LLM as the agent, via MCP
+# Agent demo via MCP — how to run it with an LLM
 
 The MCP server turns any MCP client (Claude Code, Claude Desktop, other agent frameworks) into an Agent
 Passport agent. This is the "the LLM can be fooled, the mandate cannot" demo.
@@ -6,16 +6,17 @@ Passport agent. This is the "the LLM can be fooled, the mandate cannot" demo.
 ## Setup
 ```bash
 npm install && npm run build -w sdk && npm run build -w mcp-server
-npm run scenario -w demo      # registers agent #1, issues + anchors a mandate, writes mcp-server/credentials/
+npm run scenario -w demo      # registers the agent (#1 on the demo deployment), anchors a mandate, writes mcp-server/credentials/
 # note: the scenario ends by revoking that mandate; issue a fresh one for the demo:
-npm run api -w demo & curl -X POST http://127.0.0.1:18790/api/step/issue
+npm run api -w demo           # terminal 1: the live API
+curl -X POST http://127.0.0.1:18790/api/step/issue   # terminal 2, once the API is up
 export DEMO_AGENT_KEY=0x…     # the agent's key from .env (testnet only)
 claude                         # in the repo root; .mcp.json connects the agent-passport server
 ```
 The MCP server loads `mcp-server/credentials/` when it starts, so issue the mandate first and start (or
 `/mcp`-reconnect) the client afterwards — otherwise step 5 below revokes a mandate the agent isn't holding.
 
-Without an LLM, `npm run demo-run -w mcp-server` walks the same story with a scripted MCP client and writes
+Without an LLM, `npm run demo-run -w mcp-server` walks steps 1–4 below with a scripted MCP client and writes
 `demo/public/runs/mcp-latest.json` (it sends one swap and one forced, reverting transaction).
 
 Before recording, `npm run preflight -w demo` checks — read-only, it sends nothing — that the RPC answers, the

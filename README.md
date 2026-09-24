@@ -11,18 +11,18 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
 - **12 contracts, source-verified on Monad's Sourcify** (exact match, e.g. [PassportGate's record](https://sourcify-api-monad.blockvision.org/v2/contract/10143/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109)), entry point
   [`PassportGate`](https://testnet.monadscan.com/address/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109) ([all deployments](#deployments--monad-testnet-chain-id-10143)).
 - **Why Monad**: the whole check — identity, mandate status, four Merkle proofs, the agent's signature, the daily
-  budget — runs inside the payment transaction (827 ms median submit → receipt), a revoke binds every relying
+  budget — runs inside the payment transaction (827 ms median submit → receipt across the scenario), a revoke binds every relying
   party from the agent's next action, and passkey owners are verified by Monad's P-256 precompile ([numbers](docs/BENCHMARKS.md)).
 - **A storyline of 9 real transactions**, 4 of them agent actions the gate refused on-chain — including a
-  prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
+  simulated prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
 - **The agent wallet never receives the tokens**: the gate pulls each authorized amount from the owner, and the DEX
   pays its output back to the owner.
 - **Passkey owner**: two passkey prompts set an agent up — one signs the mandate, one batch registers the agent,
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
-  passkey in the script, a real Windows Hello / Touch ID prompt in the demo app).
+  passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
 - **136 tests** (93 contract · 18 SDK · 19 MCP · 6 verifier) plus 2 fork tests against the official ERC-8004
-  Identity Registry on Monad; CI on every push.
+  Identity Registry on Monad; CI on every push (its fork job tolerates public-RPC outages).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 
@@ -89,14 +89,15 @@ flowchart LR
    root and the credential hash go on-chain (`CredentialStatusRegistry`).
 3. **Selective disclosure.** To act, the agent reveals exactly four claims — scope, per-tx limit, daily limit,
    and "this counterparty is allowed" — each with a Merkle proof, plus an EIP-712 signature over the exact
-   action. Owner name, purpose and other counterparties stay hidden. The four disclosed claims travel in the
+   action. Owner name, purpose and other counterparties stay out of the gate presentation. The four disclosed claims travel in the
    action's calldata, so once an action executes they are public, as is the owner's address; the hidden claims
    never leave the owner and the agent.
 4. **Enforcement.** `PassportGate` checks identity, key binding, mandate status (revoked / expired / kill switch /
    agent sold), the four proofs, limits (booking the daily budget), and — if the counterparty requires it —
-   that a registered vLEI verifier vouched for the owner. Funds are pulled **from the owner**; the agent wallet
-   holds no tokens (only gas), so a fooled agent cannot be drained — at worst it spends within the signed limits
-   at an allowed counterparty.
+   that a registered vLEI verifier vouched for the owner. In the owner-funded style (`_pullWithPassport`) funds are
+   pulled **from the owner**: the agent wallet holds no tokens, only gas, so a fooled agent cannot be drained — at
+   worst it spends within the signed limits at an allowed counterparty. (Check-only integrations bill the agent's
+   own wallet.)
 5. **Accountability.** An off-chain verifier checks the owner's GLEIF vLEI chain (root → QVI → legal entity →
    OOR role credential) and a KERI signature by the role holder binding this credential, then records only
    the result and a SAID hash on-chain (`verifier/`, [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md)).
@@ -147,15 +148,18 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## What's new
-- **Enforcement, not just attestation.** Most agent-identity work tells a counterparty *who* an agent is.
-  Agent Passport decides whether it may do *this*, *now*, inside the transaction that moves the money, and
-  books the budget on-chain.
-- **A fooled agent can't be drained.** Funds stay with the owner and the gate pulls only what the signed mandate
-  allows: a prompt-injected agent can at worst spend within its limits at an allowed counterparty, or pay gas
-  for a transaction that reverts.
+- **The counterparty checks, not just the wallet.** Session keys and smart-account policies limit what an
+  agent's own account may do; attestation layers tell a counterparty who an agent is. Agent Passport lets the
+  receiving protocol verify, inside the payment transaction, an owner-signed mandate bound to an ERC-8004
+  identity — per-transaction and daily limits, allowed counterparties, revocation — from four disclosed claims,
+  and books the budget on-chain.
+- **A fooled agent can't be drained (owner-funded style).** With `_pullWithPassport` the agent wallet holds only
+  gas and the gate pulls only what the mandate allows: a prompt-injected agent can at worst spend within its
+  limits at an allowed counterparty, or pay gas for a transaction that reverts.
 - **Accountable, without disclosure.** A vLEI verifier can vouch that a legal entity's officer stands behind
-  the mandate, and only counterparties of gate-authorized actions can leave feedback — the two gaps ERC-8004
-  leaves open (who answers for an agent, and feedback that is not tied to real interactions).
+  the mandate — the counterparty learns that, not who. Feedback filed through `GroundedFeedback` can only come
+  from the counterparty of a gate-authorized action, once per action — the two gaps ERC-8004 leaves open (who
+  answers for an agent, and feedback that is not tied to real interactions).
 
 ## Compared with
 | | How Agent Passport relates |
@@ -172,11 +176,15 @@ cd contracts && forge test && cd ..            # 93 tests (+ 2 fork tests with M
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 18 + 19 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
-cp .env.example .env                           # add fresh testnet keys to run the scenario / live mode
+cp .env.example .env                           # testnet keys for the scenario / live mode (see below)
 npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
 npm run scenario -w demo                       # the whole storyline on Monad testnet
 npm run api -w demo                            # live mode: the app sends real testnet transactions
 ```
+Everything before `cp .env.example` needs no keys. The testnet steps drive the deployment below with the demo
+keys (agent #1; the deployer is the registered vLEI verifier); with your own keys, deploy your own set first
+(`contracts/script/Deploy.s.sol`) and update `sdk/src/deployments.ts`.
+
 Use it from an agent: `.mcp.json` wires the MCP server into Claude Code — see [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md).
 
 ## Repository
@@ -230,7 +238,7 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 | ✅ | owner | Anchor the credential hash and disclosure root on Monad |  | [`0x3be21847…`](https://testnet.monadscan.com/tx/0x3be218472c41f4bc068ef8ca341b4ea67ac07bac3b4045cc0b3d06d048ed3ef9) |
 | ✅ | agent | Agent swaps 80 apUSD within its limit |  | [`0x3376e55c…`](https://testnet.monadscan.com/tx/0x3376e55c14c38587731fcbb7fa17891c2815ef2ccb92df542aa3686226dc3617) |
 | ❌ | agent | Agent tries 150 apUSD — over its per-transaction limit | ExceedsPerTxLimit | [`0x73442f47…`](https://testnet.monadscan.com/tx/0x73442f47375e85e7b1d5f337afb3dccf6116f61110f72bf42929ee5783dbfd35) |
-| ❌ | agent | Prompt-injected agent routes 50 apUSD through a look-alike DEX | PayeeNotAllowed | [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) |
+| ❌ | agent | Simulated prompt injection: the agent routes 50 apUSD through a look-alike DEX | PayeeNotAllowed | [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) |
 | ❌ | agent | Agent pays a merchant that requires a vLEI-verified owner | OwnerNotVleiVerified | [`0xc1ba95e1…`](https://testnet.monadscan.com/tx/0xc1ba95e169e239ac7184fb9f8349f35cdb4f59b06892109951f4b1ed00562dbf) |
 | ✅ | vlei | vLEI verifier records: owner is a verified legal entity (stand-in using the verifier key; the full vLEI check is [below](#vlei-owner-verification-off-chain--on-chain)) |  | [`0x8abdad6f…`](https://testnet.monadscan.com/tx/0x8abdad6f7141a2dbf19810598878a263cbc246e074ef9b4631fe9c915575e2c3) |
 | ✅ | agent | Same payment after the owner's vLEI is verified |  | [`0xc024a35e…`](https://testnet.monadscan.com/tx/0xc024a35e0bd6973a4aa3e7716f23f0eba114ac8bedc327b117223c8de017517e) |
@@ -240,6 +248,11 @@ rejected ones, is a real transaction (rejections revert on-chain with the gate's
 Median submit → receipt latency in this run: **827 ms**. The agent wallet never receives the tokens —
 PassportGate pulls each authorized amount from the owner, and the DEX pays its output to the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
+Explorers show a reverted transaction as failed without the reason. The reasons above are the gate's own: the
+scenario reads them with `eth_call` before sending, and replaying a transaction at its block returns the same
+error (for example `cast call --block <n> …` on the look-alike payment returns `NotAuthorized(11)`, i.e.
+`PayeeNotAllowed`).
+
 ![The same run in the demo app's ledger: what was granted, and what the gate refused and why](docs/img/demo-ledger.png)
 
 ### Concurrent actions
@@ -247,10 +260,10 @@ PassportGate pulls each authorized amount from the owner, and the DEX pays its o
 receipts. Each is fully verified on-chain — identity, mandate status, four Merkle proofs, the agent's
 signature, the daily budget — and settled. Result on 2026-09-23: **8/8 settled in 1 block**, 679 ms from first
 submit to last receipt ([block 65043995](https://testnet.monadscan.com/block/65043995)). This measures latency, not
-parallel execution: the eight swaps come from one wallet (consecutive transaction nonces) and book the same
-daily-budget slot, so they execute in order within the block. PassportGate's action nonces are unordered, so an
-agent's actions don't depend on each other's order — one that fails or lands late doesn't hold up the rest. A
-benchmark with independent agents and mandates is future work.
+parallel execution: the eight swaps come from one wallet (consecutive transaction nonces, so a dropped one would
+hold up the rest) and book the same daily-budget slot, so they execute in order within the block. PassportGate's
+unordered action nonces mean a refused action doesn't invalidate the ones signed after it. A benchmark with
+independent agents and mandates is future work.
 Raw data: [`demo/public/runs/bench-latest.json`](demo/public/runs/bench-latest.json).
 
 ### Passkey owner (no seed phrase)
@@ -276,7 +289,7 @@ recorded on Monad: **VLEI_VERIFIED** ([`0xee30f223…`](https://testnet.monadsca
 
 ### MCP agent on Monad testnet
 `npm run demo-run -w mcp-server`: a scripted MCP client drives the Agent Passport MCP server in agent mode — the
-same four tools an LLM agent gets (the LLM-driven version: [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)). Run on
+same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)). Run on
 2026-09-24, log in [`demo/public/runs/mcp-latest.json`](demo/public/runs/mcp-latest.json):
 
 | | Tool call | Result | Tx |

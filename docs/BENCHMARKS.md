@@ -1,7 +1,7 @@
 # Benchmarks and test evidence
 
 Every number below comes from a file in this repository or a command you can re-run. Commands that send
-transactions spend testnet MON and are marked so.
+transactions spend testnet MON, are marked so, and run against the demo deployment with its demo keys.
 
 ## Latency on Monad testnet
 
@@ -35,8 +35,8 @@ the gate ([`demo/public/runs/bench-latest.json`](../demo/public/runs/bench-lates
 | First submit → last receipt | **679 ms** |
 
 The swaps come from one wallet (consecutive transaction nonces) and book the same daily-budget slot, so they
-execute in order within the block. What the gate's unordered action nonces remove is the wait between actions:
-the agent never needs a receipt before signing the next one. Reproduce (sends transactions):
+execute in order within the block. The gate's unordered action nonces mean a refused action doesn't invalidate
+the ones signed after it. Reproduce (sends transactions):
 `npm run bench -w demo -- 8`.
 
 ## Gas on Monad
@@ -44,7 +44,8 @@ the agent never needs a receipt before signing the next one. Reproduce (sends tr
 Two Monad rules shape these numbers ([gas pricing](https://docs.monad.xyz/developer-essentials/gas-pricing),
 [opcode pricing](https://docs.monad.xyz/developer-essentials/opcode-pricing)):
 - **The gas charged is the gas limit**, not the gas used. The MCP server's `execute_action` pre-checks every
-  action against the gate and only sends what it will accept (unless forced); the demo scenario sends refused
+  action with the gate's `check` and only sends what it accepts (unless forced; the signature, nonce and deadline
+  are checked only on-chain); the demo scenario sends refused
   actions anyway, with a fixed 400,000 limit, so that the refusals are recorded on-chain.
 - **Cold state access costs more than on Ethereum**: 10,100 gas per cold account (Ethereum: 2,600) and 8,100
   per cold 128-slot storage page (Ethereum: 2,100 per slot). A guarded action reads the gate, the status

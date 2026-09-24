@@ -7,7 +7,7 @@ how the static-analysis findings were handled.
 
 | Threat | Defence | Where |
 |---|---|---|
-| Agent tricked (prompt injection) into sending funds elsewhere | Agent wallet holds no tokens (only gas); PassportGate pulls from the owner only for an allowed payee, scope, asset and amount | `authorizeAndPull`, `payee` claim |
+| Agent tricked (prompt injection) into sending funds elsewhere | Owner-funded style: the agent wallet holds no tokens (only gas); PassportGate pulls from the owner only for an allowed payee, scope, asset and amount | `authorizeAndPull`, `payee` claim |
 | Agent exceeds its limits | Per-tx and daily limits are mandatory disclosed claims, enforced and booked on-chain | `PassportGate.check`, `spent` |
 | Agent hides a restrictive claim | All four gate claims are required; missing/mismatched key → rejected | `_checkClaims` |
 | Forged or lifted claims | Every disclosure is a Merkle proof against the root the owner anchored | `_proves`, SDK `verifyPresentation` |
@@ -16,8 +16,8 @@ how the static-analysis findings were handled.
 | Relying party inflates the amount | Amount is inside the signed intent | `test_revert_signatureForDifferentAmount` |
 | Stale authority after revocation / expiry / sale of the agent | Checked on every call: revoked, time window, per-agent epoch (kill switch), issuer ≠ current owner | `CredentialStatusRegistry.statusOf` |
 | Owner points agent at a wallet it doesn't control | `setAgentWallet` requires the new wallet's own signature (ECDSA or ERC-1271) | `AgentIdentityRegistry` |
-| Sybil reputation | `GroundedFeedback`: one rating per gate-authorized action, only by its counterparty | `GroundedFeedback.rate` |
-| Over-disclosure by the agent's MCP server | Disclosure policy (default: only the four gate claims); HTTP is verifier-only without a bearer token; Host/Origin validation | `mcp-server/src/policy.ts`, `http.ts` |
+| Unearned reputation | `GroundedFeedback`: one rating per gate-authorized action, only by its counterparty (the registry itself still accepts direct feedback; see limitations) | `GroundedFeedback.rate` |
+| Over-disclosure by the agent's MCP server | Disclosure policy (default: only gate-type claims — scopes, limits, payees; text claims such as the owner's name never); HTTP is verifier-only without a bearer token; Host/Origin validation | `mcp-server/src/policy.ts`, `http.ts` |
 | Self-asserted "verified owner" | Only registered vLEI verifiers can record owner assurance; removing a verifier voids its results | `recordOwnerAssurance`, `ownerAssuranceOf` |
 
 ## Known limitations
@@ -29,6 +29,10 @@ how the static-analysis findings were handled.
 - **Trust in the vLEI verifier.** The chain records the verifier's result (and the OOR SAID hash), not the
   KERI/ACDC proof itself; the verifier trusts one configured root AID.
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
+- **The daily limit is a UTC calendar day.** Budgets reset at 00:00 UTC, so an agent can spend up to twice the
+  daily limit across midnight.
+- **The MCP server's default policy discloses any gate-type claim on request**, including other scopes and
+  payees in the mandate; a stricter policy file can narrow it. Text claims never leave the agent by default.
 - **Feedback is grounded, not Sybil-proof.** The gate accepts zero-amount actions and the demo DEX rates every
   settled swap, so an agent can generate positive feedback for the cost of gas; an owner can also run its own
   relying party. Readers of the reputation registry should weight feedback by relying party and amount; a
