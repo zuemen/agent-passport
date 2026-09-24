@@ -6,6 +6,7 @@ import {GroundedFeedback} from "../src/GroundedFeedback.sol";
 import {AgentReputationRegistry} from "../src/AgentReputationRegistry.sol";
 import {IAgentIdentity} from "../src/interfaces/IAgentIdentity.sol";
 import {IAgentReputation} from "../src/interfaces/IAgentReputation.sol";
+import {PassportClaims} from "../src/libraries/PassportClaims.sol";
 import {PassportFixture} from "./utils/PassportFixture.sol";
 
 /// @notice The limitations docs/SECURITY.md lists, pinned down as tests: each one passes because the limitation
@@ -63,6 +64,47 @@ contract KnownLimitationsTest is PassportFixture {
         _authorize(100e6);
         _authorize(50e6);
         assertEq(gate.spentToday(CID, ASSET), 250e6, "a fresh budget after midnight");
+    }
+
+    /// SECURITY.md "One daily budget per mandate and asset": the daily limit is not split by scope or by
+    /// counterparty — swaps at one allowed payee and a loan at another draw from the same budget.
+    function test_knownLimitation_dailyBudgetSharedAcrossScopesAndPayees() public {
+        address lender = makeAddr("lender");
+        claims.push(Claim(keccak256("s7"), PassportClaims.payeeKey(lender), PassportClaims.ALLOWED));
+        bytes32 cid = keccak256("vc-shared-budget");
+        _anchor(cid); // scopes dex.swap and lending.borrow; payees this contract and the lender
+
+        _act(cid, 0, 6, address(this), 100e6); // dex.swap here
+        _act(cid, 0, 6, address(this), 100e6);
+        _act(cid, 1, 7, lender, 50e6); // lending.borrow at another counterparty
+        assertEq(gate.spentToday(cid, ASSET), 250e6, "one budget: 250 across two scopes and two payees");
+
+        (PassportGate.ActionIntent memory i, PassportGate.Presentation memory p, bytes memory sig) =
+            _intent(cid, 1, 7, lender, 1e6);
+        vm.prank(lender);
+        vm.expectRevert(abi.encodeWithSelector(PassportGate.NotAuthorized.selector, PassportGate.Reason.ExceedsDailyLimit));
+        gate.authorize(i, p, sig);
+    }
+
+    /// An intent for credential `cid`, disclosing the scope claim `scopeIndex` and the payee claim `payeeIndex`.
+    function _intent(bytes32 cid, uint256 scopeIndex, uint256 payeeIndex, address relyingParty, uint256 amount)
+        internal
+        returns (PassportGate.ActionIntent memory i, PassportGate.Presentation memory p, bytes memory sig)
+    {
+        p = _presentation(cid);
+        p.scope = _disclose(scopeIndex);
+        p.payee = _disclose(payeeIndex);
+        i = PassportGate.ActionIntent(
+            cid, claims[scopeIndex].value, ASSET, amount, relyingParty, ++nonce, vm.getBlockTimestamp() + 60
+        );
+        sig = _signIntent(agentKey, i);
+    }
+
+    function _act(bytes32 cid, uint256 scopeIndex, uint256 payeeIndex, address relyingParty, uint256 amount) internal {
+        (PassportGate.ActionIntent memory i, PassportGate.Presentation memory p, bytes memory sig) =
+            _intent(cid, scopeIndex, payeeIndex, relyingParty, amount);
+        vm.prank(relyingParty);
+        gate.authorize(i, p, sig);
     }
 
     /// SECURITY.md "The registry also takes direct feedback": anyone but the owner can rate an agent directly;

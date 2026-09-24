@@ -34,6 +34,9 @@ because the limitation is real, so closing one makes its test fail and this list
   The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
 - **The daily limit is a UTC calendar day.** Budgets reset at 00:00 UTC, so an agent can spend up to twice the
   daily limit across midnight. *(tested: `test_knownLimitation_dailyLimitResetsAtUtcMidnight`)*
+- **One daily budget per mandate and asset.** The daily limit is not split by scope or counterparty: swaps at a
+  DEX and payments to a merchant under the same mandate draw from one budget. Separate budgets need separate
+  mandates. *(tested: `test_knownLimitation_dailyBudgetSharedAcrossScopesAndPayees`)*
 - **The MCP server's default policy discloses any gate-type claim on request**, including other scopes and
   payees in the mandate; a stricter policy file can narrow it. Text claims never leave the agent by default.
 - **The registry also takes direct feedback.** An ERC-8004 Reputation Registry accepts feedback from any
@@ -87,8 +90,8 @@ merkle-tree code path does not load. Forcing uuid 11 via overrides left the tree
 tracked here instead of patched.
 
 ## Tests
-98 Foundry tests (unit, every gate reason code, fuzz, and three invariants under random amounts, time jumps,
+99 Foundry tests (unit, every gate reason code, fuzz, and three invariants under random amounts, time jumps,
 replays and a revocation: today's booked spend never exceeds the daily limit, nothing is authorized after the
-mandate is revoked, and no authorized intent is accepted twice; plus three tests that pin down known limitations), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 22 SDK tests
+mandate is revoked, and no authorized intent is accepted twice; plus four tests that pin down known limitations), 3 fork tests against the official ERC-8004 Identity and Reputation registries on Monad testnet, 22 SDK tests
 (incl. end-to-end on anvil and passkey owners), 20 MCP tests (incl. HTTP transport guards) and 6 vLEI
 verifier tests.

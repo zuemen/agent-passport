@@ -10,7 +10,7 @@
 
 ## What it is
 A primitive other protocols build on, so that before an AI agent moves money any protocol can check — in one
-call on Monad — who stands behind it, what it is allowed to do, and whether that still holds.
+call on Monad — that its owner signed a mandate for it, what that mandate allows, and whether it still holds.
 - ERC-8004 Identity / Reputation / Validation registries, fork-tested against the official Identity and Reputation registries
 - An owner-signed W3C Verifiable Credential (the mandate): scopes, per-transaction and daily limits, allowed
   counterparties, validity — signed with EIP-712 or a passkey (ERC-1271)

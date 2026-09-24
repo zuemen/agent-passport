@@ -39,6 +39,30 @@ execute in order within the block. The gate's unordered action nonces mean a ref
 the ones signed after it. Reproduce (sends transactions):
 `npm run bench -w demo -- 8`.
 
+## How a checked action meets Monad's execution model
+
+What `PassportGate.authorize` writes, besides its event ([source](../contracts/src/PassportGate.sol)):
+
+| Storage | Keyed by | Shared with |
+|---|---|---|
+| `nonceUsed` | agent wallet, action nonce | nothing — a fresh slot per action |
+| `spent` | credential, asset, UTC day | every action under the same mandate and asset that day |
+| `_actions` | action id | nothing — a fresh slot per action |
+
+Everything else it only reads: the identity registry (owner, agent wallet), the status registry (the mandate's
+record, the owner's vLEI status) and the relying party's vLEI requirement.
+- **Different mandates don't contend in the gate.** Agents acting under different mandates write disjoint gate
+  slots; their transactions can still meet in the relying party's own state (a DEX's reserves, a token balance),
+  like any two swaps. Monad executes transactions optimistically in parallel and re-executes one whose inputs
+  changed, so contention costs re-execution, not correctness.
+- **One mandate is one budget line.** Actions under the same mandate and asset book the same `spent` slot, so they
+  are ordered — what the concurrency run above measured. A benchmark with independent agents and mandates is
+  future work.
+- **A pre-check is only a preview.** The MCP server's `execute_action` calls `check` through `eth_call` before
+  sending, which reads the last executed state; Monad orders a block by consensus and executes it afterwards, so the
+  transaction runs against newer state. The gate checks everything again inside the transaction: a revoke that
+  lands in between still refuses the action.
+
 ## Gas on Monad
 
 Two Monad rules shape these numbers ([gas pricing](https://docs.monad.xyz/developer-essentials/gas-pricing),
@@ -64,24 +88,31 @@ Monad's documentation puts a 200,000-gas transaction at about $0.0005 at the min
 checked agent payment costs a fraction of a cent. The obvious optimisation — keeping a credential's gate state
 on fewer storage pages — is future work; the deployed contracts are unchanged.
 
-## Gas under Foundry (Ethereum gas schedule, local EVM)
+## Gas under Foundry: Ethereum rules and Monad rules
 
-`cd contracts && forge test --gas-report --no-match-contract GateInvariant` — per-function gas across the unit
-tests. Medians include calls that revert inside the tests.
+`cd contracts && forge test --gas-report --no-match-contract GateInvariant`, then the same with `--network monad`,
+which runs the tests under Foundry's Monad EVM (its gas schedule and precompiles). Foundry 1.8.3; the same tests
+and the same calls in both columns; medians per function, including calls that revert inside the tests.
 
-| Contract | Function | Median | Max |
-|---|---|---|---|
-| PassportGate | `check` (view) | 40,563 | 48,718 |
-| PassportGate | `authorize` | 101,250 | 192,873 |
-| PassportGate | `authorizeAndPull` | 224,379 | 224,379 |
-| CredentialStatusRegistry | `anchor` | 130,500 | 130,512 |
-| CredentialStatusRegistry | `revoke` | 33,747 | 33,903 |
-| CredentialStatusRegistry | `revokeAll` (kill switch) | 51,409 | 51,409 |
-| CredentialStatusRegistry | `recordOwnerAssurance` | 64,225 | 95,595 |
-| GroundedFeedback | `rate` | 31,337 | 33,519 |
-| PassportDex (demo) | `swap` | 173,082 | 448,009 |
-| PassportMerchant (demo) | `pay` | 133,025 | 261,232 |
-| PasskeyAccount | `execute` (P-256 signature, batched calls) | 401,232 | 665,407 |
+| Contract | Function | Ethereum (Cancun) | Monad | |
+|---|---|---|---|---|
+| PassportGate | `check` (view) | 45,323 | 67,252 | +48% |
+| PassportGate | `authorize` | 175,035 | 237,471 | +36% |
+| PassportGate | `authorizeAndPull` | 227,179 | 314,228 | +38% |
+| CredentialStatusRegistry | `anchor` | 130,500 | 134,839 | +3% |
+| CredentialStatusRegistry | `revoke` | 33,747 | 35,734 | +6% |
+| CredentialStatusRegistry | `revokeAll` (kill switch) | 51,409 | 70,781 | +38% |
+| CredentialStatusRegistry | `recordOwnerAssurance` | 68,331 | 69,866 | +2% |
+| GroundedFeedback | `rate` | 33,519 | 50,961 | +52% |
+| PassportDex (demo) | `swap` | 173,082 | 250,709 | +45% |
+| PassportMerchant (demo) | `pay` | 133,025 | 205,759 | +55% |
+| PasskeyAccount | `execute` (P-256 signature, batched calls) | 401,232 | 70,575 | **−82%** |
+
+Two things show. Calls that read a lot of cold state cost more under Monad's rules (cold accounts and cold storage
+pages, above): `check` calls the status and identity registries and reads several mapping entries. And a passkey
+owner costs far less: Monad has the P-256 precompile at `0x0100`, while under Cancun rules OpenZeppelin's
+`P256.verify` finds no precompile and verifies the signature in Solidity. On Monad testnet the precompile call in the passkey setup used 6,900 gas
+([trace](../README.md#verify-it-yourself--no-keys-no-mon)).
 
 ## Test coverage
 
@@ -110,10 +141,14 @@ the check-only example in [`contracts/test/examples/`](../contracts/test/example
 
 | Suite | Tests | Command |
 |---|---|---|
-| Contracts (unit, every gate reason code, fuzz, 3 invariants, check-only example, known limitations) | 98 | `cd contracts && forge test` |
-| Fork tests against the official ERC-8004 Identity and Reputation registries | 3 | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` |
+| Contracts (unit, every gate reason code, fuzz, 3 invariants, check-only example, known limitations) | 99 | `cd contracts && forge test` |
+| The same contract suite on Foundry's Monad EVM (Foundry 1.8+; in CI on every push) | 99 | `cd contracts && forge test --network monad` |
+| Fork tests against the official ERC-8004 Identity and Reputation registries (in CI, skipped only when the public RPC is down) | 3 | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (Foundry 1.7 and older: without `--network monad`) |
 | SDK (incl. end-to-end on anvil, passkey owners, deployment consistency, revert decoding, tampering) | 22 | `npm test -w sdk` |
 | MCP server | 20 | `npm test -w mcp-server` |
 | vLEI verifier | 6 | `npm test -w @agent-passport/verifier` |
+
+Foundry 1.8 prints the three invariants as one test: `97 tests passed, 0 failed, 1 skipped` (the skip is the fork
+suite when `MONAD_FORK_URL` is not set); Foundry 1.7 prints 99.
 
 Static analysis: Slither 0.11.6, triage in [SECURITY.md](SECURITY.md#static-analysis-slither-0116).

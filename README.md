@@ -1,7 +1,7 @@
 # Agent Passport
 
-**Before an AI agent moves money, any protocol can check — in one call on Monad — who stands behind it,
-what it is allowed to do, and whether that still holds. The counterparty learns only what it needs.**
+**Before an AI agent moves money, any protocol can check — in one call on Monad — that its owner signed a
+mandate for it, what that mandate allows, and whether it still holds. The counterparty learns only what it needs.**
 
 Built for **Monad Metropolis · Track 04 — Trust / Identity & AI Infrastructure**. A primitive other
 protocols build on: ERC-8004 agent identity + an owner-signed, selectively-disclosed authorization
@@ -11,8 +11,9 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
 - **12 contracts, source-verified on Monad's Sourcify** (exact match, e.g. [PassportGate's record](https://sourcify-api-monad.blockvision.org/v2/contract/10143/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109)), entry point
   [`PassportGate`](https://testnet.monadscan.com/address/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109) ([all deployments](#deployments--monad-testnet-chain-id-10143)).
 - **Why Monad**: the whole check — identity, mandate status, four Merkle proofs, the agent's signature, the daily
-  budget — runs inside the payment transaction (827 ms median submit → receipt across the scenario), a revoke binds every relying
-  party from the agent's next action, and passkey owners are verified by Monad's P-256 precompile ([numbers](docs/BENCHMARKS.md)).
+  budget — runs inside the payment transaction, and a checked payment still confirms fast (827 ms median submit →
+  receipt, measured end to end from Taiwan through the public RPC); a revoke binds every relying party from the
+  agent's next action, and passkey owners are verified by Monad's P-256 precompile ([numbers](docs/BENCHMARKS.md)).
 - **A storyline of 9 real transactions**, 4 of them agent actions the gate refused on-chain — including a
   simulated prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
 - **The agent wallet never received the tokens in this run**: the gate pulls each authorized amount from the owner,
@@ -21,8 +22,9 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
   passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
 - **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
-- **146 tests** (98 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
-  Identity and Reputation registries on Monad; CI on every push (its fork-test step tolerates public-RPC outages).
+- **147 tests** (99 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
+  Identity and Reputation registries on Monad. CI on every push runs the contract suite twice — on the Ethereum EVM
+  and on Foundry's Monad EVM (`--network monad`) — and the fork tests (skipped only when the public RPC is down).
 - **Check it yourself with no keys and no MON** — decode the refusals, fork the official registries, or run the
   whole demo on a local chain: [five commands](#verify-it-yourself--no-keys-no-mon).
 
@@ -54,8 +56,8 @@ endpoint, and that feedback is rarely grounded in verifiable interactions
 - **Protocols** (DEXs, merchants, lenders, payment apps) that want to let agents act, but only within limits
   someone accountable has signed: inherit `PassportGuarded`, or call `PassportGate` — see
   [docs/INTEGRATION.md](docs/INTEGRATION.md).
-- **Owners** — institutions or people who deploy agents — who need to cap, scope and instantly revoke what an
-  agent may do, from a wallet or a passkey, optionally backed by a vLEI-verified legal entity.
+- **Owners** — institutions or people who deploy agents — who need to cap, scope and revoke (one transaction)
+  what an agent may do, from a wallet or a passkey, optionally backed by a vLEI-verified legal entity.
 - **Agent developers**: any MCP client gets the four Agent Passport tools, so an agent can prove its mandate
   without handing over private data.
 
@@ -98,8 +100,9 @@ flowchart LR
    agent sold), the four proofs, limits (booking the daily budget), and — if the counterparty requires it —
    that a registered vLEI verifier vouched for the owner. In the owner-funded style (`_pullWithPassport`) funds are
    pulled **from the owner**: the agent wallet holds no tokens, only gas, so a fooled agent cannot be drained — at
-   worst it spends within the signed limits at an allowed counterparty. (Check-only integrations bill the agent's
-   own wallet.)
+   worst it spends within the signed per-transaction and daily limits at an allowed counterparty (the daily limit is
+   per UTC day, so up to twice it across midnight), plus its own gas. (Check-only integrations bill the agent's own
+   wallet.)
 5. **Accountability.** An off-chain verifier checks the owner's GLEIF vLEI chain (root → QVI → legal entity →
    OOR role credential) and a KERI signature by the role holder binding this credential, then records only
    the result and a SAID hash on-chain (`verifier/`, [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md)).
@@ -133,15 +136,17 @@ sequenceDiagram
 Checking *every* agent action on-chain only makes sense if the chain keeps up. Measured on Monad testnet:
 - **The check is inside the payment.** Identity, mandate status, four Merkle proofs, the agent's signature and
   the daily budget are verified in the same transaction that moves the funds; median submit → receipt across
-  the scenario: **827 ms**.
+  the scenario: **827 ms** — end to end from Taiwan through the public RPC, not the time the check itself takes.
 - **Revocation is one transaction.** The owner's revoke confirmed in 827 ms, and every relying party reads the
   same state — the agent's next action was refused with `Revoked`. No revocation lists to distribute.
-- **Checked actions keep up with the chain.** 8 fully verified swaps, sent back to back, **settled in one block,
-  679 ms from first submit to last receipt** — a latency measurement, not parallel execution: they share one
-  wallet and one budget slot ([details](#concurrent-actions)).
+- **Back-to-back checked actions land in one block.** 8 fully verified swaps, sent back to back, **settled in one
+  block, 679 ms from first submit to last receipt** — a latency measurement, not a throughput or parallel-execution
+  claim: they share one wallet and one budget slot ([details](#concurrent-actions)).
 - **Passkey owners on-chain.** WebAuthn signatures are verified by Monad's P-256 precompile (`0x0100`,
   EIP-7951, 6,900 gas — [Monad docs](https://docs.monad.xyz/developer-essentials/precompiles)), so an institution can hold its agents' mandates behind Face ID / Windows Hello
-  instead of a seed phrase.
+  instead of a seed phrase. Across the same tests, a passkey-signed `execute` takes a median 70,575 gas under
+  Foundry's Monad EVM and 401,232 under Ethereum (Cancun) rules, where the signature is checked in Solidity
+  ([side by side](docs/BENCHMARKS.md#gas-under-foundry-ethereum-rules-and-monad-rules)).
 - **Compatible with the official ERC-8004 deployment.** The demo deploys its own registries so it controls the
   full state; fork tests run the gate on the official Identity Registry on Monad testnet
   (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) and land `GroundedFeedback` in the official Reputation Registry
@@ -158,7 +163,8 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
   and books the budget on-chain.
 - **A fooled agent can't be drained (owner-funded style).** With `_pullWithPassport` the agent wallet holds only
   gas and the gate pulls only what the mandate allows: a prompt-injected agent can at worst spend within its
-  limits at an allowed counterparty, or pay gas for a transaction that reverts.
+  limits at an allowed counterparty (up to twice the daily limit across UTC midnight), or pay gas for a
+  transaction that reverts.
 - **Accountable, without disclosure.** A vLEI verifier can vouch that a legal entity's officer stands behind
   the mandate — the counterparty learns that, not who. Feedback filed through `GroundedFeedback` can only come
   from the counterparty of a gate-authorized action, once per action — the two gaps ERC-8004 leaves open (who
@@ -169,27 +175,40 @@ Latency, gas and cost per action on Monad, coverage, and how to reproduce each n
 |---|---|
 | Credential / attestation layers on ERC-8004 | They answer *who* an agent is. Agent Passport decides whether it may do this action now, inside the transaction that moves the money, keeps the budget and revocation on-chain, and ties reputation to authorized actions. |
 | ERC-8004 registries alone | Identity and feedback; no mandate, limits, revocation or accountable owner. Agent Passport builds on them, and is fork-tested against the official Identity and Reputation registries on Monad. |
-| Wallet permissions (e.g. ERC-7715 / 7710) | Limit what a key may spend from one wallet. They don't give a counterparty verifiable, privacy-preserving proof of who stands behind an agent. Complementary. |
+| Wallet permissions (e.g. ERC-7715 / 7710) | Limit what a key may spend from one wallet. They don't give a counterparty verifiable, privacy-preserving proof that an accountable owner signed for this action. Complementary. |
 | Google AP2 mandates | [AP2 v0.2](https://ap2-protocol.org/ap2/payment_mandate/) carries user mandates as SD-JWT credentials; its open Payment Mandate constraints (amount range, budget, allowed payees, validity) mirror our claims, and its budget needs a record of past spending. Agent Passport keeps that record — and revocation — on Monad. Aligned in semantics, not an AP2 implementation. |
 
 ## Verify it yourself — no keys, no MON
-With [Foundry](https://getfoundry.sh) and Node, from a fresh clone, after
-`cd contracts && forge build && cd .. && npm install && npm run build -w sdk` (the SDK takes its ABIs from the
-Foundry build), none of these sends a testnet transaction — each was run that way on a fresh clone:
+**Nothing to install** — ask Monad's public RPC for the trace of the prompt-injected payment:
+```bash
+curl -s https://testnet-rpc.monad.xyz -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"debug_traceTransaction","params":["0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681",{"tracer":"callTracer","tracerConfig":{"onlyTopCall":true}}]}'
+# "error":"execution reverted", "output":"0xe84c9797…0b" = NotAuthorized(11) = PayeeNotAllowed
+```
+The same call without `onlyTopCall` for the passkey setup
+[`0xca381aa4…`](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e) shows a
+`STATICCALL` to `0x…0100` — Monad's P-256 precompile — with `"gasUsed":"0x1af4"` (6,900) and output `…01` (valid).
+
+**With [Foundry](https://getfoundry.sh) and Node** — clone with `git clone --recursive` (Windows: first
+`git config --global core.longpaths true`), then run `cd contracts && forge build && cd .. && npm install && npm run build -w sdk`
+(the SDK takes its ABIs from the Foundry build; the first via-IR compile takes a few minutes). None of these sends a
+testnet transaction; each was run that way on a fresh clone:
 
 | What you check | Command | You should see |
 |---|---|---|
 | Why a recorded agent action was refused on Monad testnet | `npm run why -w demo -- 0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681` | `NotAuthorized(PayeeNotAllowed)` — the prompt-injected payment |
-| The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*"` | 3 passed (official Identity and Reputation) |
-| The whole storyline on your machine | `npm run scenario:local -w demo` | 9 steps; refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked` |
+| The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (PowerShell: set `$env:MONAD_FORK_URL="https://testnet-rpc.monad.xyz"` first; Foundry 1.7 and older have no Monad network: leave out `--network monad`) | `3 tests passed` (official Identity and Reputation) |
+| The whole storyline on your machine | `npm run scenario:local -w demo` | 5 setup transactions, then the storyline's 9; refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked` |
 | Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions |
-| Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | 98 + 22 + 20 + 6 passed |
+| Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | forge: `97 tests passed, 0 failed, 1 skipped` on Foundry 1.8 (it prints the 3 invariants as one test, so 99 on 1.7; the skip is the fork suite without `MONAD_FORK_URL`) · 22 · 20 · 6 passed |
+
+The SDK and MCP tests start anvil on ports 18546–18548; the local mode uses 18549 (anvil), 18790 (API) and 15173
+(app), and refuses to start if one of them is taken.
 
 ## Quickstart
 ```bash
 # Windows: first run `git config --global core.longpaths true` (OpenZeppelin's nested test submodules have long paths)
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
-cd contracts && forge test && cd ..            # 98 tests (+ 3 fork tests with MONAD_FORK_URL=https://testnet-rpc.monad.xyz)
+cd contracts && forge test && cd ..            # 99 tests (+ 3 fork tests with MONAD_FORK_URL=… and, on Foundry 1.8+, --network monad)
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 22 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
@@ -270,8 +289,9 @@ Median submit → receipt latency in this run: **827 ms**. In this run the agent
 PassportGate pulls each authorized amount from the owner, and the DEX pays its output to the owner. Raw log: [`demo/public/runs/latest.json`](demo/public/runs/latest.json).
 
 Explorers show a reverted transaction as failed without the reason. `npm run why -w demo -- <tx>` reads it from the
-transaction's call trace (Monad's RPC serves `debug_traceTransaction`; otherwise it replays the call at its block —
-read-only either way) and decodes the error; for the four refusals above it returns exactly the reasons in the
+transaction's call trace (Monad's RPC serves `debug_traceTransaction`; otherwise it replays the call against the
+state after its block, which is exact unless the same block changed that state — read-only either way) and decodes
+the error; for the four refusals above it returns exactly the reasons in the
 table — `NotAuthorized(ExceedsPerTxLimit)`, `NotAuthorized(PayeeNotAllowed)`, `NotAuthorized(OwnerNotVleiVerified)`,
 `NotAuthorized(Revoked)`.
 
@@ -325,7 +345,7 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 `npm run why -w demo -- 0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c` → `NotAuthorized(PayeeNotAllowed)`.
 
 ## Status
-- [x] Contracts — 98 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
+- [x] Contracts — 99 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, 200 random tamperings of a presentation
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, local-chain mode (no keys, no MON; in CI), concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode

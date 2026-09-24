@@ -196,8 +196,8 @@ export default function App() {
             Agent <em>Passport</em>
           </h1>
           <p className="lede">
-            Before an AI agent moves money, any protocol can check — in one call on Monad — <b>who stands behind it</b>,{" "}
-            <b>what it is allowed to do</b>, and <b>whether that still holds</b>. The counterparty sees only what it needs.
+            Before an AI agent moves money, any protocol can check — in one call on Monad — <b>that its owner signed a mandate for it</b>,{" "}
+            <b>what that mandate allows</b>, and <b>whether it still holds</b>. The counterparty sees only what it needs.
           </p>
         </div>
         <div className="mast-meta">
