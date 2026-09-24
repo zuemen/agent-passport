@@ -1,7 +1,7 @@
 # Agent Passport — demo
 
 React + Vite app with three roles — **Owner** (the institution: the mandate, vLEI status, revoke),
-**Agent** (MCP tool calls, actions), **Verifier** (what the DEX sees: four proven claims, redacted rest,
+**Agent** (the recorded MCP session — tool calls, results, transactions — and live actions), **Verifier** (what the DEX sees: four proven claims, redacted rest,
 and a live `PassportGate.check` on Monad).
 
 ```bash

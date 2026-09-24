@@ -319,6 +319,9 @@ button { font: inherit; color: inherit; }
 .mcp .c { color: #8e98b3; }
 .mcp .s { color: #f2d9a0; }
 .mcp .ok { color: #8fd6ae; }
+.mcp .no { color: #f3a39c; }
+.mcp .warn { color: #f0c987; }
+.mcp a { color: #c9bfff; }
 
 .note { font-size: 13px; color: var(--ink-3); margin-top: 8px; }
 .foot { margin-top: 48px; padding-top: 16px; border-top: 0.5px solid var(--ink); display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; }

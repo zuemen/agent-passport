@@ -18,6 +18,20 @@ import {
 
 type Role = "owner" | "agent" | "verifier";
 
+/** demo/public/runs/mcp-latest.json, written by `npm run demo-run -w mcp-server`. */
+interface McpStep {
+  id: string;
+  title: string;
+  tool: string;
+  args: { scope?: string; amount?: string; relyingParty?: string; forceSubmit?: boolean; disclose?: string[] };
+  result?: { tools?: string[]; availableClaims?: { disclosable: boolean }[]; authorized?: boolean; reason?: string; executed?: boolean; stoppedBy?: string; txHash?: string };
+  error?: string;
+}
+interface McpRun {
+  startedAt: string;
+  steps: McpStep[];
+}
+
 /** The storyline, in order. `live` is the demo-API step that performs it. */
 const PLAN: { live: string; ids: string[]; role: StepLog["role"]; title: string }[] = [
   { live: "issue", ids: ["sign", "anchor"], role: "owner", title: "Owner signs the mandate and anchors it on Monad" },
@@ -108,10 +122,12 @@ export default function App() {
   const [liveSteps, setLiveSteps] = useState<StepLog[]>([]);
   const [lastLive, setLastLive] = useState<string>();
   const [bench, setBench] = useState<{ succeeded: number; blocksSpanned: number; allReceiptsMs: number }>();
+  const [mcp, setMcp] = useState<McpRun>();
 
   useEffect(() => {
     loadRecordedRun().then(setRun);
     fetch(`${import.meta.env.BASE_URL}runs/bench-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setBench, () => {});
+    fetch(`${import.meta.env.BASE_URL}runs/mcp-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setMcp, () => {});
     probeLive().then(async (ok) => {
       setLive(ok);
       if (!ok) return;
@@ -298,14 +314,18 @@ export default function App() {
                 Any MCP-capable agent can call the Agent Passport tools. It reveals four claims to the DEX and signs each action; the
                 gate checks the claims against the anchored root, the signature against the agent's ERC-8004 key, and the limits.
               </p>
-              <pre className="mcp">
-                <span className="c">{"// MCP tool call"}</span>{"\n"}
-                present_passport({"{"} agentId: <span className="s">"{run.agentId}"</span>, disclose: [{run.verifierView.disclosed.map((d, i) => (
-                  <span key={d.name}>{i ? ", " : ""}<span className="s">"{d.name.split(":")[0]}"</span></span>
-                ))}] {"}"}){"\n"}
-                <span className="c">{"// →"}</span> <span className="ok">{run.verifierView.disclosed.length} claims disclosed</span>, {run.verifierView.hiddenClaimCount} stay hidden (salted){"\n"}
-                check_authorization({"{"} scope: <span className="s">"dex.swap"</span>, amount: <span className="s">"80000000"</span> {"}"}) <span className="c">{"// → PassportGate.check on Monad"}</span>
-              </pre>
+              {mcp ? (
+                <McpSession run={mcp} />
+              ) : (
+                <pre className="mcp">
+                  <span className="c">{"// MCP tool call"}</span>{"\n"}
+                  present_passport({"{"} agentId: <span className="s">"{run.agentId}"</span>, disclose: [{run.verifierView.disclosed.map((d, i) => (
+                    <span key={d.name}>{i ? ", " : ""}<span className="s">"{d.name.split(":")[0]}"</span></span>
+                  ))}] {"}"}){"\n"}
+                  <span className="c">{"// →"}</span> <span className="ok">{run.verifierView.disclosed.length} claims disclosed</span>, {run.verifierView.hiddenClaimCount} stay hidden (salted){"\n"}
+                  check_authorization({"{"} scope: <span className="s">"dex.swap"</span>, amount: <span className="s">"80000000"</span> {"}"}) <span className="c">{"// → PassportGate.check on Monad"}</span>
+                </pre>
+              )}
               {live && (
                 <div className="actions">
                   {PLAN.filter((p) => p.role === "agent").map((p) => (
@@ -371,6 +391,54 @@ function Ledger({ steps, shown, run, lastLive }: { steps: StepLog[]; shown: numb
       })}
       <div style={{ display: "none" }}>{run.credentialId}</div>
     </div>
+  );
+}
+
+const PARTY: Record<string, string> = {
+  [C.passportDex.toLowerCase()]: "PassportDex",
+  [C.lookalikeDex.toLowerCase()]: "Look-alike DEX",
+  [C.passportMerchant.toLowerCase()]: "PassportMerchant",
+};
+
+/** The recorded MCP session: every tool call the agent made and what came back, with its transactions. */
+function McpSession({ run }: { run: McpRun }) {
+  const args = (a: McpStep["args"]) =>
+    [
+      a.scope && `"${a.scope}"`,
+      a.amount && `${usd(BigInt(a.amount))} apUSD`,
+      a.relyingParty && `→ ${PARTY[a.relyingParty.toLowerCase()] ?? short(a.relyingParty)}`,
+      a.forceSubmit && "forceSubmit",
+      a.disclose && `disclose [${a.disclose.join(", ")}]`,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  const result = (s: McpStep) => {
+    const r = s.result;
+    if (s.error) return <span className="no">✗ {s.error}</span>;
+    if (!r) return null;
+    if (r.tools) return <span className="ok">✓ {r.tools.join(" · ")}</span>;
+    if (r.availableClaims) {
+      const open = r.availableClaims.filter((c) => c.disclosable).length;
+      return <span className="ok">✓ {r.availableClaims.length} claims, {r.availableClaims.length - open} private by policy</span>;
+    }
+    if (s.tool === "check_authorization") return <span className={r.authorized ? "ok" : "no"}>{r.authorized ? "✓ authorized" : `✗ ${r.reason}`} (eth_call)</span>;
+    const tx = r.txHash && <> · <a href={explorerTx(r.txHash)} target="_blank" rel="noreferrer">tx {short(r.txHash)} ↗</a></>;
+    if (r.executed) return <span className="ok">✓ settled on Monad{tx}</span>;
+    if (r.stoppedBy === "on-chain") return <span className="no">✗ reverted by PassportGate: {r.reason}{tx}</span>;
+    return <span className="warn">■ stopped before sending: {r.reason}</span>;
+  };
+  return (
+    <pre className="mcp">
+      <span className="c">{`// recorded MCP session, ${run.startedAt.slice(0, 10)} — scripted client (npm run demo-run -w mcp-server)`}</span>
+      {run.steps.map((s) => (
+        <span key={s.id}>
+          {"\n"}
+          {s.tool}({args(s.args)}){"\n"}
+          {"  "}
+          {result(s)}
+        </span>
+      ))}
+    </pre>
   );
 }
 
