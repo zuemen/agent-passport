@@ -13,9 +13,11 @@ npm run scenario:local -w demo   # the same local chain, the whole storyline hea
 ```
 
 Local mode uses anvil's public development accounts and writes only to `demo/.state-local/` and
-`contracts/deployments/31337.json` (both git-ignored); the testnet records are never touched. On a local chain
-there is no explorer, and the app hides the testnet-only benchmark and MCP panels and the passkey panel (plain
-anvil has no P-256 precompile).
+`contracts/deployments/31337.json` (both git-ignored); the testnet records are never touched. With Foundry 1.8+
+the local chain runs under Monad's EVM rules (`anvil --network monad`: its gas schedule and precompiles, P-256
+included); older anvil runs Ethereum rules, and passkey signatures are then verified by OpenZeppelin's Solidity
+fallback. `scenario:local` runs the storyline and then a passkey owner (software passkey). On a local chain there
+is no explorer, and the app hides the testnet-only benchmark and recorded-MCP panels.
 
 Live mode and the scenario read `DEMO_OWNER_KEY`, `DEMO_AGENT_KEY` and `DEPLOYER_PRIVATE_KEY` (the
 registered vLEI verifier on testnet) from `../.env`. The API binds to 127.0.0.1 only. All data is

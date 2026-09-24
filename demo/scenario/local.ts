@@ -124,8 +124,11 @@ try {
   // A fresh chain every time, so the previous run's agent and mandate would not exist on it.
   if (stateDir.endsWith(".state-local")) rmSync(stateDir, { recursive: true, force: true });
 
-  console.log(`▸ anvil on ${LOCAL_RPC} (chain 31337)`);
-  start("anvil", `anvil --port ${port} --chain-id 31337 --silent`, repoRoot);
+  // Foundry 1.8+ can run the chain under Monad's EVM rules: its gas schedule and precompiles, P-256 included.
+  const anvilHelp = spawnSync("anvil --help", { shell: true, encoding: "utf8" }).stdout ?? "";
+  const monadRules = /possible values:[^\]]*\bmonad\b/.test(anvilHelp);
+  console.log(`▸ anvil on ${LOCAL_RPC} (chain 31337, ${monadRules ? "Monad EVM rules" : "Ethereum rules; Foundry 1.8+ runs it under Monad's"})`);
+  start("anvil", `anvil --port ${port} --chain-id 31337 --silent${monadRules ? " --network monad" : ""}`, repoRoot);
   const client = createPublicClient({ chain: localChain, transport: http(LOCAL_RPC, { timeout: 1_000, retryCount: 0 }) });
   await waitFor(async () => {
     const id = await client.getChainId();
@@ -155,6 +158,11 @@ try {
     console.log("▸ running the storyline (scenario/run.ts)\n");
     const r = spawnSync("npx tsx scenario/run.ts", { cwd: demo, env: childEnv(), shell: true, stdio: "inherit" });
     process.exitCode = r.status ?? 1;
+    if (process.exitCode === 0) {
+      console.log("\n▸ a passkey owner: setup, a swap, revocation, a refused swap (scenario/passkey.ts, software passkey)\n");
+      const pk = spawnSync("npx tsx scenario/passkey.ts", { cwd: demo, env: childEnv(), shell: true, stdio: "inherit" });
+      process.exitCode = pk.status ?? 1;
+    }
   } else {
     console.log("▸ starting the live demo API and the app");
     start("api", "npx tsx scenario/server.ts", demo, childEnv({ DEMO_API_PORT: String(apiPort) }));

@@ -26,8 +26,9 @@ credential + on-chain enforcement and revocation, usable by any agent through MC
   Identity and Reputation registries on Monad. CI on every push runs the contract suite twice — on the Ethereum EVM
   and on Foundry's Monad EVM (`--network monad`) — the fork tests (skipped only when the public RPC is down), and a
   mutation check: 12 mutants, each removing one rule of the gate or of grounded feedback, all caught by the tests.
-- **Check it yourself with no keys and no MON** — decode the refusals, fork the official registries, or run the
-  whole demo on a local chain: [five commands](#verify-it-yourself--no-keys-no-mon).
+- **Check it yourself with no keys and no MON** — decode a refusal with one `curl`, fork the official registries,
+  or run the whole demo, passkey owner included, on a local chain under Monad's EVM rules:
+  [verify it yourself](#verify-it-yourself--no-keys-no-mon).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 
@@ -198,8 +199,8 @@ testnet transaction; each was run that way on a fresh clone:
 |---|---|---|
 | Why a recorded agent action was refused on Monad testnet | `npm run why -w demo -- 0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681` | `NotAuthorized(PayeeNotAllowed)` — the prompt-injected payment |
 | The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (PowerShell: set `$env:MONAD_FORK_URL="https://testnet-rpc.monad.xyz"` first; Foundry 1.7 and older have no Monad network: leave out `--network monad`) | `3 tests passed` (official Identity and Reputation) |
-| The whole storyline on your machine | `npm run scenario:local -w demo` | 5 setup transactions, then the storyline's 9; refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked` |
-| Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions |
+| The whole storyline on your machine | `npm run scenario:local -w demo` | `anvil … (chain 31337, Monad EVM rules)` with Foundry 1.8+; 5 setup transactions, then the storyline's 9 with refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked`; then a passkey owner: setup, a swap, revocation, a swap refused with `Revoked` |
+| Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions; in the Owner tab, the passkey panel with your own device's passkey |
 | The tests notice a missing rule | `cd contracts && bash script/mutants.sh` (about 8 minutes) | 12 mutants killed, the control survives ([table](docs/BENCHMARKS.md#mutation-check)) |
 | Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | forge: `97 tests passed, 0 failed, 1 skipped` on Foundry 1.8 (it prints the 3 invariants as one test, so 99 on 1.7; the skip is the fork suite without `MONAD_FORK_URL`) · 22 · 20 · 6 passed |
 
@@ -214,7 +215,7 @@ cd contracts && forge test && cd ..            # 99 tests (+ 3 fork tests with M
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 22 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)
-npm run scenario:local -w demo                 # the whole storyline on a local anvil chain — no keys, no MON
+npm run scenario:local -w demo                 # the whole storyline + a passkey owner on a local anvil chain — no keys, no MON
 npm run local -w demo                          # live mode against that local chain: click through it at localhost:15173
 cp .env.example .env                           # testnet keys for the scenario / live mode (see below)
 npm run preflight -w demo                      # read-only check: RPC, contracts, balances, demo API, mandates
@@ -348,7 +349,7 @@ same four tools an LLM agent gets (to run the story with an LLM: [docs/AGENT_DEM
 
 ## Status
 - [x] Contracts — 99 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; a [mutation check](docs/BENCHMARKS.md#mutation-check) (12 mutants, all killed); 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
-- [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, 200 random tamperings of a presentation
+- [x] SDK — 22 tests incl. end-to-end on anvil, passkey owners, SDK addresses = the deployment record, revert decoding, and tampering with every salt, key, value and proof of a presentation (mutation-checked)
 - [x] MCP server — 4 tools, disclosure policy, HTTP transport guards, on-chain revert reasons; 20 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, local-chain mode (no keys, no MON; in CI), concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))

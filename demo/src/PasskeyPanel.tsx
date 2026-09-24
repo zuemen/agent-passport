@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { explorerAddr, explorerTx, short } from "./chain";
+import { explorerAddr, explorerTx, isLocal, short } from "./chain";
 import {
   approve,
   createPasskey,
@@ -65,7 +65,7 @@ export function PasskeyPanel() {
       <h4>Owner with a passkey — no seed phrase, no gas</h4>
       <p className="sub">
         Your device's passkey (Windows Hello, Touch ID, Face ID) controls a smart account that owns the agent. Each owner
-        action is one biometric approval, verified on-chain by Monad's P-256 precompile; a relayer pays the gas.
+        action is one biometric approval, verified on-chain by {isLocal ? "the P-256 precompile (Foundry 1.8+ runs the local chain under Monad's rules; older anvil falls back to verifying in Solidity)" : "Monad's P-256 precompile"}; a relayer pays the gas.
       </p>
       {!pk ? (
         <button className="btn" onClick={() => createPasskey().then(setPk, (e) => setError((e as Error).message))}>

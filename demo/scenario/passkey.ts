@@ -20,12 +20,15 @@ const flow = new PasskeyOwnerFlow(passkey.x, passkey.y, (ch) => passkey.sign(ch)
   if (s.tx) console.log(`   ${EXPLORER ? `${EXPLORER}/tx/` : "tx "}${s.tx}`);
 });
 
+const GRANTED = "Agent swaps 10 apUSD from the passkey owner's funds";
+const REFUSED = "Agent swaps 10 apUSD after the passkey revocation";
 console.log(`owner = PasskeyAccount ${await flow.ensureAccount()}`);
 await flow.setup();
-await flow.swap("Agent swaps 10 apUSD from the passkey owner's funds", 10_000_000n);
+await flow.swap(GRANTED, 10_000_000n);
 await flow.revoke();
-await flow.swap("Agent swaps 10 apUSD after the passkey revocation", 10_000_000n);
+await flow.swap(REFUSED, 10_000_000n);
 
+mkdirSync(runsDir, { recursive: true });
 writeFileSync(
   join(runsDir, "passkey-latest.json"),
   JSON.stringify(
@@ -34,3 +37,10 @@ writeFileSync(
     2,
   ),
 );
+
+// Exit non-zero on a surprise, so scenario:local can rely on it.
+const step = (name: string) => flow.steps.find((s) => s.step === name);
+if (step(GRANTED)?.status !== "success" || step(REFUSED)?.reason !== "Revoked") {
+  console.error("✗ expected the first swap granted and the one after the revocation refused with Revoked");
+  process.exitCode = 1;
+}
