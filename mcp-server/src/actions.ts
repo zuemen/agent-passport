@@ -100,21 +100,22 @@ export async function executeAction(
   const errors = passportGateAbi.filter((x) => x.type === "error");
   const gas = pre.authorized ? undefined : 400_000n; // a doomed tx cannot be estimated; cap it
 
-  const call =
+  const hash: Hex =
     a.scope === "dex.swap"
-      ? {
+      ? await wc.writeContract({
           address: a.relyingParty,
           abi: [...passportDexAbi, ...errors],
           functionName: "swap",
           args: [intent, presentation, signature, 0n],
-        }
-      : {
+          gas,
+        })
+      : await wc.writeContract({
           address: a.relyingParty,
           abi: [...passportMerchantAbi, ...errors],
           functionName: "pay",
           args: [toHex(crypto.getRandomValues(new Uint8Array(32))), intent, presentation, signature],
-        };
-  const hash: Hex = await wc.writeContract({ ...call, gas } as never);
+          gas,
+        });
   const receipt = await ctx.client.waitForTransactionReceipt({ hash });
   const ok = receipt.status === "success";
   return {
