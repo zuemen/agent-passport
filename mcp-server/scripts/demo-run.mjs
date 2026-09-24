@@ -118,6 +118,9 @@ try {
   run.finishedAt = new Date().toISOString();
   run.done = true;
   if (liveFile) writeFileSync(liveFile, JSON.stringify(run, null, 2));
-  writeFileSync(join(repoRoot, "demo", "public", "runs", "mcp-latest.json"), JSON.stringify(run, null, 2) + "\n");
+  // Only a run that sent something replaces the recorded one (not --dry, not a failed pre-check).
+  if (run.steps.some((s) => s.result?.txHash)) {
+    writeFileSync(join(repoRoot, "demo", "public", "runs", "mcp-latest.json"), JSON.stringify(run, null, 2) + "\n");
+  }
   await client.close();
 }
