@@ -15,6 +15,9 @@ claude                         # in the repo root; .mcp.json connects the agent-
 The MCP server loads `mcp-server/credentials/` when it starts, so issue the mandate first and start (or
 `/mcp`-reconnect) the client afterwards — otherwise step 5 below revokes a mandate the agent isn't holding.
 
+Without an LLM, `npm run demo-run -w mcp-server` walks the same story with a scripted MCP client and writes
+`demo/public/runs/mcp-latest.json` (it sends one swap and one forced, reverting transaction).
+
 Before recording, `npm run preflight -w demo` checks — read-only, it sends nothing — that the RPC answers, the
 contracts have code, the demo wallets can pay for a run (agent ≥ 0.3 MON), the demo API and app are up, and
 the agent's mandate is active.

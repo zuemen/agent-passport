@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "startedAt": "2026-09-24T06:43:18.384Z",
+  "chainId": 10143,
+  "client": "scripted MCP client (no LLM)",
+  "agentId": "1",
+  "steps": [
+    {
+      "at": "2026-09-24T06:43:22.021Z",
+      "id": "tools",
+      "title": "The agent's MCP server exposes its tools",
+      "tool": "tools/list",
+      "args": {},
+      "result": {
+        "tools": [
+          "present_passport",
+          "verify_passport",
+          "check_authorization",
+          "execute_action"
+        ]
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:22.036Z",
+      "id": "claims",
+      "title": "Which claims could the agent show?",
+      "tool": "present_passport",
+      "args": {
+        "agentId": "1",
+        "disclose": []
+      },
+      "result": {
+        "credentialId": "0xb124c5eff003df217fb1592ad1dc0acfa21106fecde1fb8fbc7b3c50802b2ecf",
+        "availableClaims": [
+          {
+            "name": "scope:dex.swap",
+            "disclosable": true
+          },
+          {
+            "name": "scope:commerce.pay",
+            "disclosable": true
+          },
+          {
+            "name": "maxPerTx:0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+            "disclosable": true
+          },
+          {
+            "name": "dailyLimit:0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+            "disclosable": true
+          },
+          {
+            "name": "payee:0xeaa7574ebfaa724e0935476b4d4041b5cf186dac",
+            "disclosable": true
+          },
+          {
+            "name": "payee:0xb66472725612bc98b0fa8262ec15eb2a5184df10",
+            "disclosable": true
+          },
+          {
+            "name": "text:purpose",
+            "disclosable": false
+          },
+          {
+            "name": "text:ownerName",
+            "disclosable": false
+          },
+          {
+            "name": "text:mandateRef",
+            "disclosable": false
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:22.781Z",
+      "id": "check",
+      "title": "May the agent swap 20 apUSD on the DEX? (read-only)",
+      "tool": "check_authorization",
+      "args": {
+        "agentId": "1",
+        "scope": "dex.swap",
+        "amount": "20000000",
+        "relyingParty": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC"
+      },
+      "result": {
+        "authorized": true,
+        "reason": "Ok",
+        "credentialId": "0xb124c5eff003df217fb1592ad1dc0acfa21106fecde1fb8fbc7b3c50802b2ecf",
+        "credentialStatus": "Active",
+        "ownerAssurance": "VLEI_VERIFIED",
+        "gate": "0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109"
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:23.831Z",
+      "id": "swap",
+      "title": "Swap 20 apUSD within the mandate",
+      "tool": "execute_action",
+      "args": {
+        "agentId": "1",
+        "scope": "dex.swap",
+        "amount": "20000000",
+        "relyingParty": "0xEaa7574EBFaa724e0935476b4d4041B5Cf186DaC"
+      },
+      "result": {
+        "executed": true,
+        "reason": "Ok",
+        "txHash": "0xb3b68e26342fa79a1713c0d950d02f7ba5874942f8bf73a08e10d73401ffbdd2",
+        "txUrl": "https://testnet.monadscan.com/tx/0xb3b68e26342fa79a1713c0d950d02f7ba5874942f8bf73a08e10d73401ffbdd2",
+        "status": "success",
+        "block": "65228790"
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:23.926Z",
+      "id": "injected",
+      "title": "Injected instruction: route 50 apUSD to a look-alike DEX",
+      "tool": "execute_action",
+      "args": {
+        "agentId": "1",
+        "scope": "dex.swap",
+        "amount": "50000000",
+        "relyingParty": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326"
+      },
+      "result": {
+        "executed": false,
+        "stoppedBy": "mandate",
+        "reason": "NotInCredential: the mandate does not cover this scope, asset or counterparty"
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:35.949Z",
+      "id": "injected-forced",
+      "title": "Send it anyway (forceSubmit)",
+      "tool": "execute_action",
+      "args": {
+        "agentId": "1",
+        "scope": "dex.swap",
+        "amount": "50000000",
+        "relyingParty": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326",
+        "forceSubmit": true
+      },
+      "result": {
+        "executed": false,
+        "stoppedBy": "on-chain",
+        "reason": "PayeeNotAllowed",
+        "txHash": "0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c",
+        "txUrl": "https://testnet.monadscan.com/tx/0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c",
+        "status": "reverted",
+        "block": "65228830"
+      }
+    },
+    {
+      "at": "2026-09-24T06:43:35.953Z",
+      "id": "disclose-hidden",
+      "title": "A counterparty asks for a hidden claim (text:ownerName)",
+      "tool": "present_passport",
+      "args": {
+        "agentId": "1",
+        "disclose": [
+          "text:ownerName"
+        ]
+      },
+      "error": "refused by this agent's disclosure policy: text:ownerName"
+    }
+  ],
+  "finishedAt": "2026-09-24T06:43:35.954Z",
+  "done": true
+}

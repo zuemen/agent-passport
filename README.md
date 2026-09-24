@@ -274,10 +274,23 @@ credential, presents the OOR credential over IPEX, and the verifier checks the w
 signature. Controls: a statement for another credential and an untrusted root are both rejected. Result
 recorded on Monad: **VLEI_VERIFIED** ([`0xee30f223…`](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)). Details: [docs/VLEI_SETUP.md](docs/VLEI_SETUP.md).
 
+### MCP agent on Monad testnet
+`npm run demo-run -w mcp-server`: a scripted MCP client drives the Agent Passport MCP server in agent mode — the
+same four tools an LLM agent gets (the LLM-driven version: [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)). Run on
+2026-09-24, log in [`demo/public/runs/mcp-latest.json`](demo/public/runs/mcp-latest.json):
+
+| | Tool call | Result | Tx |
+|---|---|---|---|
+| ✅ | `check_authorization` — swap 20 apUSD at PassportDex | `Ok` (read-only `eth_call`) | — |
+| ✅ | `execute_action` — swap 20 apUSD | settled | [`0xb3b68e26…`](https://testnet.monadscan.com/tx/0xb3b68e26342fa79a1713c0d950d02f7ba5874942f8bf73a08e10d73401ffbdd2) |
+| 🛑 | `execute_action` — 50 apUSD to the look-alike DEX | stopped before sending: the mandate does not cover that counterparty | — |
+| ❌ | the same, with `forceSubmit` | reverted by PassportGate: `PayeeNotAllowed` | [`0xbf743778…`](https://testnet.monadscan.com/tx/0xbf74377810f39a2ffcd05c8a889bfa985d6ec328ea96e1318a6bc026de92e66c) |
+| 🛑 | `present_passport` — disclose `text:ownerName` | refused by the disclosure policy | — |
+
 ## Status
 - [x] Contracts — 87 Foundry tests (unit, every gate reason code, fuzz, invariant) + fork tests against the official ERC-8004 Identity Registry; `PassportGate` 98.7% line coverage ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet
 - [x] SDK — 18 tests incl. end-to-end on anvil and passkey owners
-- [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
+- [x] MCP server — 4 tools, disclosure policy, HTTP transport guards; 19 tests; exercised on testnet ([run](#mcp-agent-on-monad-testnet)); walkthrough in [docs/AGENT_DEMO.md](docs/AGENT_DEMO.md)
 - [x] Demo — testnet scenario, concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
 - [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))
