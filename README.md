@@ -3,32 +3,32 @@
 **Before an AI agent moves money, any protocol can check — in one call on Monad — that its owner signed a
 mandate for it, what that mandate allows, and whether it still holds. The counterparty learns only what it needs.**
 
-Built for **Monad Metropolis · Track 04 — Trust / Identity & AI Infrastructure**. A primitive other
-protocols build on: ERC-8004 agent identity + an owner-signed, selectively-disclosed authorization
-credential + on-chain enforcement and revocation, usable by any agent through MCP.
+Built for **Monad Metropolis · Track 04 — Trust / Identity & AI Infrastructure**: ERC-8004 agent identity + an
+owner-signed, selectively-disclosed mandate + on-chain enforcement and revocation, usable by any agent through MCP.
 
-**At a glance** — all on Monad testnet (chain id 10143):
-- **12 contracts, source-verified on Monad's Sourcify** (exact match, e.g. [PassportGate's record](https://sourcify-api-monad.blockvision.org/v2/contract/10143/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109)), entry point
-  [`PassportGate`](https://testnet.monadscan.com/address/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109) ([all deployments](#deployments--monad-testnet-chain-id-10143)).
-- **Why Monad**: the whole check — identity, mandate status, four Merkle proofs, the agent's signature, the daily
-  budget — runs inside the payment transaction, and a checked payment still confirms fast (827 ms median submit →
-  receipt, measured end to end from Taiwan through the public RPC); a revoke binds every relying party from the
-  agent's next action, and passkey owners are verified by Monad's P-256 precompile ([numbers](docs/BENCHMARKS.md)).
-- **A storyline of 9 real transactions**, 4 of them agent actions the gate refused on-chain — including a
-  simulated prompt-injected payment to a look-alike DEX, reverted with [`PayeeNotAllowed`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) ([full run](#live-run-on-monad-testnet)).
-- **The agent wallet never received the tokens in this run**: the gate pulls each authorized amount from the owner,
-  and the DEX pays its output back to the owner.
-- **Passkey owner**: two passkey prompts set an agent up — one signs the mandate, one batch registers the agent,
-  binds its key and anchors the mandate ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e)) — verified by Monad's P-256 precompile (a software
-  passkey in the script; the demo app can use a real Windows Hello / Touch ID passkey).
-- **Accountable owner**: a test vLEI chain verified off-chain, result recorded on-chain ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
-- **147 tests** (99 contract · 22 SDK · 20 MCP · 6 verifier) plus 3 fork tests against the official ERC-8004
-  Identity and Reputation registries on Monad. CI on every push runs the contract suite twice — on the Ethereum EVM
-  and on Foundry's Monad EVM (`--network monad`) — the fork tests (skipped only when the public RPC is down), and a
-  mutation check: 12 mutants, each removing one rule of the gate or of grounded feedback, all caught by the tests.
-- **Check it yourself with no keys and no MON** — decode a refusal with one `curl`, fork the official registries,
-  or run the whole demo, passkey owner included, on a local chain under Monad's EVM rules:
-  [verify it yourself](#verify-it-yourself--no-keys-no-mon).
+**30-second proof** — a simulated prompt-injected payment to a look-alike DEX, refused on Monad testnet:
+[`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) →
+`NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
+
+**At a glance** — Monad testnet, chain id 10143:
+- **Checked inside the payment.** Identity, mandate status, four Merkle proofs, the agent's signature and the daily
+  budget are verified in the transaction that moves the money; a revoke binds every relying party from the agent's
+  next action. A [storyline of 9 transactions](#live-run-on-monad-testnet), 4 of them refused on-chain.
+- **Owner-funded.** The gate pulls each authorized amount from the owner, and the DEX pays its output back to the
+  owner: the agent wallet holds only gas, and never received the tokens in this run.
+- **Built on Monad.** 12 contracts [source-verified on Monad's Sourcify](#deployments--monad-testnet-chain-id-10143)
+  (e.g. [PassportGate's record](https://sourcify-api-monad.blockvision.org/v2/contract/10143/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109)).
+  Passkey owners are verified by the P-256 precompile — two approvals set an agent up
+  ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e), a software passkey), and a
+  passkey-signed call uses 82% less gas under Monad's rules than where P-256 is checked in Solidity. 827 ms median
+  submit → receipt, end to end from Taiwan ([numbers](docs/BENCHMARKS.md)).
+- **Accountable owner.** A test vLEI chain verified off-chain, the result recorded on-chain
+  ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
+- **Tested.** 147 tests (99 contract · 22 SDK · 20 MCP · 6 verifier) + 3 fork tests on the official ERC-8004
+  registries. CI runs the contract suite under Ethereum and Monad EVM rules, the fork tests, and a
+  [mutation check](docs/BENCHMARKS.md#mutation-check): 12 mutants, each removing one rule, all caught.
+- **No keys, no MON to check it.** One `curl`, or the whole demo — passkey owner and an MCP agent included — on a
+  local chain under Monad's EVM rules: [verify it yourself](#verify-it-yourself--no-keys-no-mon).
 
 ![The demo app: the agent's passport, and exactly what the DEX gets to see](docs/img/demo-verifier.png)
 

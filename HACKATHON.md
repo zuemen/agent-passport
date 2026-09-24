@@ -7,6 +7,7 @@
 | Repository | https://github.com/zuemen/agent-passport — MIT license |
 | Network | Monad testnet (chain id 10143) — addresses in the [README](README.md#deployments--monad-testnet-chain-id-10143) and [`contracts/deployments/10143.json`](contracts/deployments/10143.json) |
 | Demo video | to be linked here |
+| Check it yourself | [No keys, no MON](README.md#verify-it-yourself--no-keys-no-mon): one `curl` against Monad testnet, or the whole demo on a local chain under Monad's EVM rules |
 
 ## What it is
 A primitive other protocols build on, so that before an AI agent moves money any protocol can check — in one
