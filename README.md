@@ -9,6 +9,8 @@ owner-signed, selectively-disclosed mandate + on-chain enforcement and revocatio
 **30-second proof** — a simulated prompt-injected payment to a look-alike DEX, refused on Monad testnet:
 [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) →
 `NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
+**[Open the demo](https://zuemen.github.io/agent-passport/)** (the recorded run, with live reads from Monad testnet) ·
+[Claude Code as the agent, through MCP](#mcp-agent-on-monad-testnet).
 
 **At a glance** — Monad testnet, chain id 10143:
 - **Checked inside the payment.** Identity, mandate status, four Merkle proofs, the agent's signature and the daily

@@ -6,7 +6,8 @@
 | Track | 04 — Trust / Identity & AI Infrastructure |
 | Repository | https://github.com/zuemen/agent-passport — MIT license |
 | Network | Monad testnet (chain id 10143) — addresses in the [README](README.md#deployments--monad-testnet-chain-id-10143) and [`contracts/deployments/10143.json`](contracts/deployments/10143.json) |
-| Demo video | to be linked here |
+| Demo video | to be linked here — under 3 minutes, AI voice-over; it cuts together runs on Monad testnet from 2026-09-23 (bench), 2026-09-24 (live demo app, vLEI) and 2026-09-29 (Claude Code through MCP), each labeled on screen |
+| Live demo | https://zuemen.github.io/agent-passport/ — the recorded run, with live read-only reads from Monad testnet (live mode needs the local API: `npm run local -w demo`) |
 | Check it yourself | [No keys, no MON](README.md#verify-it-yourself--no-keys-no-mon): one `curl` against Monad testnet, or the whole demo on a local chain under Monad's EVM rules |
 
 ## What it is
