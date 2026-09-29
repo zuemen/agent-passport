@@ -10,6 +10,21 @@
 | Live demo | https://zuemen.github.io/agent-passport/ — the recorded run, with live read-only reads from Monad testnet (live mode needs the local API: `npm run local -w demo`) |
 | Check it yourself | [No keys, no MON](README.md#verify-it-yourself--no-keys-no-mon): one `curl` against Monad testnet, or the whole demo on a local chain under Monad's EVM rules |
 
+## For judges: using the live product (no login, no wallet, no test credentials needed)
+Open **https://zuemen.github.io/agent-passport/** — it runs on Monad testnet (chain 10143) in any browser.
+1. **Owner** tab — the mandate the owner signed: each claim marked "shown to DEX", "not shown" or "never leaves agent".
+2. **Agent** tab — the agent's MCP session: the four tools and what each call returned, with its transactions.
+3. **Verifier** tab — what the DEX sees (four Merkle-proven claims, the rest redacted). Press **Check authorization**
+   to ask PassportGate on Monad right now (an `eth_call`, no transaction): this mandate was revoked on 2026-09-23, so
+   the answer is `Revoked`, read live from the chain.
+4. **Entries & refusals** — the 9 storyline transactions, each linked to MonadScan; 4 were refused on-chain.
+5. **Check a refusal yourself** — paste any Monad testnet tx hash, or press one of the five buttons: the page reads
+   the call trace from Monad's public RPC and decodes the gate's reason (`ExceedsPerTxLimit`, `PayeeNotAllowed`,
+   `OwnerNotVleiVerified`, `Revoked`).
+
+Sending your own transactions (live mode, passkey owner, your own MCP agent) needs no keys either:
+`npm run local -w demo` runs everything on a local chain — see [Verify it yourself](README.md#verify-it-yourself--no-keys-no-mon).
+
 ## What it is
 A primitive other protocols build on, so that before an AI agent moves money any protocol can check — in one
 call on Monad — that its owner signed a mandate for it, what that mandate allows, and whether it still holds.
