@@ -9,7 +9,7 @@ owner-signed, selectively-disclosed mandate + on-chain enforcement and revocatio
 **30-second proof** — a simulated prompt-injected payment to a look-alike DEX, refused on Monad testnet:
 [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) →
 `NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
-**[Open the demo](https://zuemen.github.io/agent-passport/)** (the recorded run, with live reads from Monad testnet, and a
+**[Watch the 3-minute video](https://youtu.be/5vyENgKpGrI)** · **[Open the demo](https://zuemen.github.io/agent-passport/)** (the recorded run, with live reads from Monad testnet, and a
 box that decodes any refusal from its on-chain trace) ·
 [Claude Code as the agent, through MCP](#mcp-agent-on-monad-testnet).
 
@@ -378,7 +378,7 @@ payment to the look-alike DEX with `forceSubmit`, and PassportGate reverted it o
 - [x] Demo — testnet scenario, local-chain mode (no keys, no MON; in CI), concurrency benchmark, passkey owner (script and real browser passkey), React app with live mode
 - [x] CI (GitHub Actions), Slither triage ([docs/SECURITY.md](docs/SECURITY.md))
 - [x] vLEI verifier service — signify-ts/KERIA chain check + binding signature, recorded on Monad; 6 tests ([docs/VLEI_SETUP.md](docs/VLEI_SETUP.md))
-- [ ] Demo video
+- [x] Demo video — https://youtu.be/5vyENgKpGrI
 
 ## Design reference
 Concepts (field-level disclosure policies, identity assurance levels, revocation) are informed by the author's
