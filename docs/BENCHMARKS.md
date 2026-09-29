@@ -96,7 +96,7 @@ and the same calls in both columns; medians per function, including calls that r
 
 | Contract | Function | Ethereum (Cancun) | Monad | |
 |---|---|---|---|---|
-| PassportGate | `check` (view) | 45,323 | 67,252 | +48% |
+| PassportGate | `check` (view) | 40,563 | 67,252 | +66% |
 | PassportGate | `authorize` | 175,035 | 237,471 | +36% |
 | PassportGate | `authorizeAndPull` | 227,179 | 314,228 | +38% |
 | CredentialStatusRegistry | `anchor` | 130,500 | 134,839 | +3% |
@@ -112,7 +112,9 @@ Two things show. Calls that read a lot of cold state cost more under Monad's rul
 pages, above): `check` calls the status and identity registries and reads several mapping entries. And a passkey
 owner costs far less: Monad has the P-256 precompile at `0x0100`, while under Cancun rules OpenZeppelin's
 `P256.verify` finds no precompile and verifies the signature in Solidity. On Monad testnet the precompile call in the passkey setup used 6,900 gas
-([trace](../README.md#verify-it-yourself--no-keys-no-mon)).
+([trace](../README.md#verify-it-yourself--no-keys-no-mon)). The Cancun column stands for an EVM without that precompile:
+Ethereum mainnet has had the same one since Fusaka (EIP-7951, activated 2025-12-03), so the −82% is Monad having
+the precompile today, not an edge over current Ethereum.
 
 ## Test coverage
 

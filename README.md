@@ -20,10 +20,11 @@ owner-signed, selectively-disclosed mandate + on-chain enforcement and revocatio
   (e.g. [PassportGate's record](https://sourcify-api-monad.blockvision.org/v2/contract/10143/0xb93Ddb5E34a2d8a16ebe3DA88851d4a805fFD109)).
   Passkey owners are verified by the P-256 precompile — two approvals set an agent up
   ([tx](https://testnet.monadscan.com/tx/0xca381aa437bbb5c94f9cfd033b3aa311420f924fa0e6240306d97b2bd3477d0e), a software passkey), and a
-  passkey-signed call uses 82% less gas under Monad's rules than where P-256 is checked in Solidity. 827 ms median
+  passkey-signed call uses 82% less gas under Monad's rules than where P-256 is checked in Solidity (Ethereum has had the precompile since Fusaka too). 827 ms median
   submit → receipt, end to end from Taiwan ([numbers](docs/BENCHMARKS.md)).
 - **Accountable owner.** A test vLEI chain verified off-chain, the result recorded on-chain
-  ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
+  ([tx](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6), for the mandate of the
+  MCP run; the storyline records a stand-in result for its own mandate).
 - **Tested.** 147 tests (99 contract · 22 SDK · 20 MCP · 6 verifier) + 3 fork tests on the official ERC-8004
   registries. CI runs the contract suite under Ethereum and Monad EVM rules, the fork tests, and a
   [mutation check](docs/BENCHMARKS.md#mutation-check): 12 mutants, each removing one rule, all caught.
@@ -201,7 +202,7 @@ testnet transaction; each was run that way on a fresh clone:
 | The gate on the official ERC-8004 registries | `cd contracts && MONAD_FORK_URL=https://testnet-rpc.monad.xyz forge test --match-path "test/fork/*" --network monad` (PowerShell: set `$env:MONAD_FORK_URL="https://testnet-rpc.monad.xyz"` first; Foundry 1.7 and older have no Monad network: leave out `--network monad`) | `3 tests passed` (official Identity and Reputation) |
 | The whole storyline on your machine | `npm run scenario:local -w demo` | `anvil … (chain 31337, Monad EVM rules)` with Foundry 1.8+; 5 setup transactions, then the storyline's 9 with refusals `ExceedsPerTxLimit`, `PayeeNotAllowed`, `OwnerNotVleiVerified`, `Revoked`; then a passkey owner: setup, a swap, revocation, a swap refused with `Revoked`; then the agent through its MCP server: a swap, an injected payment stopped by the mandate, the same forced on-chain and reverted with `PayeeNotAllowed` |
 | Live mode, clicked through | `npm run local -w demo`, then http://localhost:15173 | Owner → Sign & anchor, then the Agent actions; in the Owner tab, the passkey panel with your own device's passkey |
-| Your own AI agent, through MCP | `npm run local -w demo` prints a `claude mcp add agent-passport-local …` line; run it after Owner → Sign & anchor | Claude Code gets the agent's four tools on the local chain — the same server `scenario:local` drives with a scripted client ([details](mcp-server/README.md#on-a-local-chain--no-keys-no-mon)) |
+| Your own AI agent, through MCP | `npm run local -w demo` prints a `claude mcp add agent-passport-local …` line; run it after Owner → Sign & anchor (the server reads the mandate when it starts: after a new one, reconnect with `/mcp`; in this repo, also disable the project's testnet `agent-passport` server there) | Claude Code gets the agent's four tools on the local chain — the same server `scenario:local` drives with a scripted client ([details](mcp-server/README.md#on-a-local-chain--no-keys-no-mon)) |
 | The tests notice a missing rule | `cd contracts && bash script/mutants.sh` (about 8 minutes) | 12 mutants killed, the control survives ([table](docs/BENCHMARKS.md#mutation-check)) |
 | Every test | `cd contracts && forge test`; `npm test -w sdk`, `-w mcp-server`, `-w @agent-passport/verifier` | forge: `97 tests passed, 0 failed, 1 skipped` on Foundry 1.8 (it prints the 3 invariants as one test, so 99 on 1.7; the skip is the fork suite without `MONAD_FORK_URL`) · 22 · 20 · 6 passed |
 
@@ -212,7 +213,7 @@ The SDK and MCP tests start anvil on ports 18546–18548; the local mode uses 18
 ```bash
 # Windows: first run `git config --global core.longpaths true` (OpenZeppelin's nested test submodules have long paths)
 git clone --recursive https://github.com/zuemen/agent-passport && cd agent-passport
-cd contracts && forge test && cd ..            # 99 tests (+ 3 fork tests with MONAD_FORK_URL=… and, on Foundry 1.8+, --network monad)
+cd contracts && forge test && cd ..            # 97 tests on Foundry 1.8, 99 on 1.7 (+ 3 fork tests with MONAD_FORK_URL=… and, on Foundry 1.8+, --network monad)
 npm install && npm run build -w sdk && npm run build -w mcp-server
 npm test -w sdk && npm test -w mcp-server && npm test -w @agent-passport/verifier   # 22 + 20 + 6 tests
 npm run dev -w demo                            # demo app on http://localhost:15173 (recorded run + live chain reads)

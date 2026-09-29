@@ -1,0 +1,51 @@
+name: pages
+
+# Publishes the demo's recorded-run view (plus live read-only queries against Monad testnet)
+# to https://zuemen.github.io/agent-passport/. Live mode still needs the local demo API.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: forge build
+        working-directory: contracts
+      - run: npm ci
+      - run: npm run build -w sdk
+      - run: npx vite build --base=/agent-passport/
+        working-directory: demo
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: demo/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

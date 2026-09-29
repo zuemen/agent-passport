@@ -166,6 +166,7 @@ try {
     }
     if (process.exitCode === 0 && !existsSync(mcpServer)) {
       console.log("\n(skipped the MCP part: run `npm run build -w mcp-server` first)");
+      if (process.env.CI) process.exitCode = 1; // in CI a skipped part must not pass as green
     } else if (process.exitCode === 0) {
       console.log("\n▸ the agent through its MCP server: a fresh mandate, then scripted MCP calls (mcp-server/scripts/demo-run.mjs)\n");
       const m = spawnSync("npx tsx scenario/mandate.ts", { cwd: demo, env: childEnv(), shell: true, stdio: "inherit" });
@@ -197,7 +198,8 @@ try {
     // An MCP client (Claude Code here) can drive the agent on this chain once a mandate is anchored. The agent key
     // is anvil's public development account #2, derived here and printed only to this terminal.
     const agentKey = toHex(mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 2 }).getHdKey().privateKey!);
-    const q = (s: string) => (/\s/.test(s) ? `"${s}"` : s);
+    // Forward slashes and quotes, so the line pastes into Git Bash, PowerShell and POSIX shells alike.
+    const q = (s: string) => `"${s.replace(/\\/g, "/")}"`;
     console.log("  MCP: after Owner → Sign & anchor, give an MCP client the agent on this chain, e.g. Claude Code:");
     console.log(
       `    claude mcp add agent-passport-local -e PASSPORT_DEPLOYMENT=${q(localDeploymentFile)} -e MONAD_RPC_URL=${LOCAL_RPC} ` +
