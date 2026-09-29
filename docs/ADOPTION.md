@@ -22,8 +22,8 @@ owner signed a mandate for it, what that mandate allows, and whether it still ho
 | Who | Why a check helps (our reading) | Where it goes | Source |
 |---|---|---|---|
 | **x402 API providers** on Monad's API hub (66 services) and the official facilitator | x402 settles *how* to pay; it does not show that the agent's owner allowed *this* spend on *this* API | Before the 402 is verified: one SDK `checkAuthorization` call (no contract change); on-chain, the pattern of our check-only example `PassportMeteredApi` | [docs.monad.xyz/guides/x402](https://docs.monad.xyz/guides/x402), [api-hub](https://app.monad.xyz/agents/api-hub) |
-| **DeFi skills on the Agent Hub** — Kuru, Clober, then Morpho | Kuru's published skill builds its wallet client from a private key; its limits are a token allowlist and slippage, with no owner mandate or amount cap | The skill's prepare-then-sign step (SDK check, no gas), or a router that inherits `PassportGuarded` (our deployed `PassportDex` is the template) | [kuru-trading-skills](https://github.com/Kuru-Labs/kuru-trading-skills), [app.monad.xyz/agents](https://app.monad.xyz/agents) |
-| **Agent platforms with scoped, revocable permissions** — Glider (ZeroDev session keys), CoinFello (MetaMask ERC-7710 delegation), FereAI | They already limit their agents, which shows the demand; those limits are visible only inside their own wallets | The same policy, also signed as a Passport, so the protocols their agents call can verify it | [Glider](https://app.monad.xyz/app-hub/glider), [ZeroDev × Glider](https://www.zerodev.app/blogs/blog-zerodev-glider), [CoinFello](https://metamask.io/news/coinfello-metamask-smart-accounts-kit), [FereAI](https://app.monad.xyz/app-hub/fereai) |
+| **DeFi skills on the Agent Hub** — Kuru, Clober, then Morpho | Kuru's published skill builds its wallet client from a private key; its documented limits are a token allowlist and slippage, and no owner mandate or amount cap is described | The skill's prepare-then-sign step (SDK check, no gas), or a router that inherits `PassportGuarded` (our deployed `PassportDex` is the template) | [kuru-trading-skills](https://github.com/Kuru-Labs/kuru-trading-skills), [app.monad.xyz/agents](https://app.monad.xyz/agents) |
+| **Agent platforms with scoped, revocable permissions** — Glider (ZeroDev session keys), CoinFello (MetaMask ERC-7710 delegation) | They already limit their agents, which shows the demand; the protocols their agents pay cannot verify those limits or who the owner is | The same policy, also signed as a Passport, so the protocols their agents call can verify it | [Glider](https://app.monad.xyz/app-hub/glider), [ZeroDev × Glider](https://www.zerodev.app/blogs/blog-zerodev-glider), [CoinFello](https://metamask.io/news/coinfello-metamask-smart-accounts-kit) |
 | **Agentic treasuries** — aarna | Institutional capital run by agents needs to know which legal entity authorized it | Deposit / rebalance entry points with `_pullWithPassport` and a vLEI requirement for the scope | [aarna](https://app.monad.xyz/app-hub/aarna) |
 
 ## Why not roll their own — and why not the alternatives
@@ -41,7 +41,7 @@ then signs a different thing for every protocol. **One Passport works with every
 | Off-chain policy engines | Fast to build | The counterparty has to trust the operator's database |
 
 ## Evidence so far
-- Live on Monad testnet: 12 source-verified contracts, the storyline with 4 on-chain refusals, passkey owners, and
+- Live on Monad testnet: 12 contracts source-verified on Sourcify, the storyline with 4 on-chain refusals, passkey owners, and
   Claude Code acting as the agent through MCP (two sessions, transcripts in `demo/public/runs/`).
 - The published demo decodes any refusal from Monad's public RPC: https://zuemen.github.io/agent-passport/
 - External integrations: **none yet**. Interest signals: none recorded yet. We will list every one here, with a link.
@@ -58,7 +58,7 @@ Channels: the [Monad Developer Discord](https://discord.gg/monaddev), the
 [Monad AI Blueprint](https://monad.xyz/blog/introducing-monad-ai-blueprint) and
 [DeltaV](https://monad.xyz/developers/hackathons/metropolis).
 
-## Integrate it today (Metropolis teams: about ten minutes)
+## Integrate it today (a few lines)
 Monad testnet, chain id 10143 — addresses in [`contracts/deployments/10143.json`](../contracts/deployments/10143.json).
 - **Solidity**: inherit `PassportGuarded` and call `_pullWithPassport(intent, presentation, signature)` (or
   `_requirePassport` to only check) at the top of the function that moves money —
