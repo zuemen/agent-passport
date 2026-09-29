@@ -201,7 +201,7 @@ export default function App() {
           </h1>
           <p className="lede">
             Before an AI agent moves money, any protocol can check — in one call on Monad — <b>that its owner signed a mandate for it</b>,{" "}
-            <b>what that mandate allows</b>, and <b>whether it still holds</b>. The counterparty sees only what it needs.
+            <b>what that mandate allows</b>, and <b>whether it still holds</b>. The counterparty learns only what it needs.
           </p>
         </div>
         <div className="mast-meta">
@@ -358,7 +358,7 @@ export default function App() {
           </div>
           <Ledger steps={steps} shown={live ? Infinity : shown} run={run} lastLive={lastLive} />
           <p className="note">
-            Rejected actions are real transactions too: the gate reverts them on-chain with its reason. Recorded {new Date(run.finishedAt).toLocaleString()}.
+            Rejected actions are real transactions too: the gate reverts them on-chain with its reason. Recorded {new Date(run.finishedAt).toLocaleString("en-GB", { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" })} UTC.
           </p>
           {!isLocal && <RefusalDecoder />}
         </main>
