@@ -31,7 +31,10 @@ because the limitation is real, so closing one makes its test fail and this list
   pulled from). Selective disclosure keeps the *other* claims private: they never leave the owner and the agent.
 - **Trust in the vLEI verifier.** The chain records the verifier's result (and the OOR SAID hash), not the
   KERI/ACDC proof itself; the verifier trusts one configured root AID.
-  The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it.
+  The verifier set is admin-managed (`Ownable`) on testnet; a production system would govern it. On testnet the
+  deployer is also the registered verifier, so the trust anchor is ours: the storyline's `VLEI_VERIFIED` entry is a
+  stand-in written with that key, and the full off-chain check (KERIA test chain) recorded its result separately
+  ([`0xee30f223…`](https://testnet.monadscan.com/tx/0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6)).
 - **The daily limit is a UTC calendar day.** Budgets reset at 00:00 UTC, so an agent can spend up to twice the
   daily limit across midnight. *(tested: `test_knownLimitation_dailyLimitResetsAtUtcMidnight`)*
 - **One daily budget per mandate and asset.** The daily limit is not split by scope or counterparty: swaps at a

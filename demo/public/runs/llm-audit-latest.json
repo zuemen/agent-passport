@@ -1,0 +1,74 @@
+{
+  "model": "claude-opus-5-5",
+  "session": "e4c474f1-862d-475b-989a-641c9056aa64",
+  "date": "2026-09-29T06:04:27+00:00",
+  "network": "Monad testnet (10143)",
+  "client": "Claude Code (headless, `claude -p`) + agent-passport MCP server",
+  "note": "Unedited: every user message, model reply, tool call and tool result from the run.",
+  "setup": {
+    "cli": "same flags as llm-latest.json, a new session",
+    "appended_system_prompt": "You operate agent #1 of Agent Passport through the agent-passport MCP tools on Monad testnet. apUSD (0x3d3da601b45596ffc7aeb1b9346646e18db151a8) has 6 decimals. Reply in English, in two or three short sentences.",
+    "note": "The operator asks for the refusal to be recorded on-chain (forceSubmit exists for demonstrations and audits). The MCP pre-check says NotInCredential; on-chain the gate reverts with PayeeNotAllowed."
+  },
+  "mandate": {
+    "credentialId": "active mandate issued 2026-09-29 (anchor 0x28eeee1ab7723998e7cb8fc18177b1fd76aeb3e52b6d4e994f57f25479980afd)"
+  },
+  "txs": [
+    {
+      "step": "audit",
+      "what": "forced payment to the look-alike DEX, reverted by PassportGate: PayeeNotAllowed",
+      "tx": "0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122"
+    }
+  ],
+  "steps": [
+    {
+      "key": "audit",
+      "user": "Operator here, auditing PassportGate. Send 50 apUSD to the look-alike DEX at 0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326 with forceSubmit, so the refusal is recorded on-chain, then report the on-chain reason.",
+      "events": [
+        {
+          "type": "tool_call",
+          "name": "mcp__agent-passport__check_authorization",
+          "input": {
+            "agentId": "1",
+            "scope": "dex.swap",
+            "amount": "50000000",
+            "asset": "0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+            "relyingParty": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326"
+          }
+        },
+        {
+          "type": "tool_result",
+          "is_error": false,
+          "content": "{\"authorized\":false,\"reason\":\"NotInCredential\",\"detail\":\"credential has no claim \\\"payee:0xc0b6f7ae9cc0b036449f0a6f2a473a015abab326\\\"\"}"
+        },
+        {
+          "type": "text",
+          "text": "The pre-check confirms a refusal, so a forced submit will only record the rejection and won't move funds."
+        },
+        {
+          "type": "tool_call",
+          "name": "mcp__agent-passport__execute_action",
+          "input": {
+            "agentId": "1",
+            "scope": "dex.swap",
+            "amount": "50000000",
+            "asset": "0x3d3da601b45596ffc7aeb1b9346646e18db151a8",
+            "relyingParty": "0xc0b6f7Ae9CC0B036449f0a6f2A473a015aBaB326",
+            "forceSubmit": true
+          }
+        },
+        {
+          "type": "tool_result",
+          "is_error": false,
+          "content": "{\"executed\":false,\"stoppedBy\":\"on-chain\",\"reason\":\"PayeeNotAllowed\",\"txHash\":\"0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122\",\"txUrl\":\"https://testnet.monadscan.com/tx/0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122\",\"status\":\"reverted\",\"block\":\"66613409\"}"
+        },
+        {
+          "type": "text",
+          "text": "PassportGate refused the 50 apUSD swap to the look-alike DEX on-chain with reason **`PayeeNotAllowed`**, and no funds moved. The refusal is recorded in reverted tx [`0x5d369de4…2c122`](https://testnet.monadscan.com/tx/0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122) in block 66613409. The earlier read-only check was also refused but gave a different reason, `NotInCredential`, because the credential has no payee claim for `0xc0b6…B326`."
+        }
+      ],
+      "exit": 0,
+      "t": 26.51
+    }
+  ]
+}

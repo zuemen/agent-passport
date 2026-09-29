@@ -9,7 +9,8 @@ owner-signed, selectively-disclosed mandate + on-chain enforcement and revocatio
 **30-second proof** — a simulated prompt-injected payment to a look-alike DEX, refused on Monad testnet:
 [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) →
 `NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
-**[Open the demo](https://zuemen.github.io/agent-passport/)** (the recorded run, with live reads from Monad testnet) ·
+**[Open the demo](https://zuemen.github.io/agent-passport/)** (the recorded run, with live reads from Monad testnet, and a
+box that decodes any refusal from its on-chain trace) ·
 [Claude Code as the agent, through MCP](#mcp-agent-on-monad-testnet).
 
 **At a glance** — Monad testnet, chain id 10143:
@@ -365,7 +366,10 @@ asset decimals, reply in English; both in the file); the unedited transcript is 
 | ✅ | the owner revokes | revocation on Monad | [`0x7556837e…`](https://testnet.monadscan.com/tx/0x7556837edf1ccd26474ccda007d1de084eff9f8248bbebe61fbf02e71e66e797) |
 | 🛑 | swap 1 apUSD | stopped by the pre-check: `Revoked`, nothing sent | — |
 
-The model was not fooled here; the mandate would have held either way.
+The model was not fooled here; the mandate would have held either way. In a second session the operator asked it to
+record the refusal on-chain ([`llm-audit-latest.json`](demo/public/runs/llm-audit-latest.json)): Claude sent the
+payment to the look-alike DEX with `forceSubmit`, and PassportGate reverted it on Monad with `PayeeNotAllowed`
+([`0x5d369de4…`](https://testnet.monadscan.com/tx/0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122)).
 
 ## Status
 - [x] Contracts — 99 Foundry tests (unit, every gate reason code, fuzz, 3 invariants — spend within limits, nothing authorized after revocation, no intent authorized twice — a check-only integration example, and the known limitations pinned down as tests) + 3 fork tests against the official ERC-8004 Identity and Reputation registries; a [mutation check](docs/BENCHMARKS.md#mutation-check) (12 mutants, all killed); 95% line coverage of `src/`, `PassportGate` 98.7% ([benchmarks](docs/BENCHMARKS.md)); deployed and source-verified on Monad testnet

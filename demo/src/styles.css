@@ -365,3 +365,11 @@ button { font: inherit; color: inherit; }
   .entry > :nth-child(3) { grid-area: body; }
   .entry .st { grid-area: st; }
 }
+
+/* Check a refusal yourself: decode a transaction hash in the browser */
+.decoder { margin-top: 30px; padding: 20px 22px; border: 1px solid rgba(20, 33, 61, 0.18); background: rgba(255, 255, 255, 0.35); }
+.decoder h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; }
+.decoder-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.decoder-row { display: flex; gap: 8px; margin-top: 12px; }
+.decoder-row input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 13px; padding: 8px 10px; border: 1px solid rgba(20, 33, 61, 0.3); background: #fffdf8; color: var(--ink); }
+.decoder-out { font-family: var(--mono); font-size: 14px; margin-top: 12px; color: var(--ink); word-break: break-word; }

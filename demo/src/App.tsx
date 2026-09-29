@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunLog, StepLog } from "../scenario/types";
 import { PasskeyPanel } from "./PasskeyPanel";
+import { revertReasonOf } from "@agent-passport/sdk";
+import type { Hex } from "viem";
 import {
   C,
   chain,
+  client,
   explorerAddr,
   isLocal,
   localMonadRules,
@@ -42,7 +45,7 @@ const PLAN: { live: string; ids: string[]; role: StepLog["role"]; title: string 
   { live: "swap-over", ids: ["swap-over"], role: "agent", title: "Agent tries 150 apUSD — over its per-transaction limit" },
   { live: "swap-injected", ids: ["swap-injected"], role: "agent", title: "Prompt-injected agent routes funds through a look-alike DEX" },
   { live: "pay-unverified", ids: ["pay-unverified"], role: "agent", title: "Agent pays a merchant that only serves vLEI-verified owners" },
-  { live: "vlei", ids: ["vlei"], role: "vlei", title: "vLEI verifier records: the owner is a verified legal entity" },
+  { live: "vlei", ids: ["vlei"], role: "vlei", title: "vLEI result recorded: the owner is a verified legal entity (demo stand-in)" },
   { live: "pay-verified", ids: ["pay-verified"], role: "agent", title: "Same payment, owner now verified" },
   { live: "revoke", ids: ["revoke"], role: "owner", title: "Owner revokes the mandate" },
   { live: "swap-after-revoke", ids: ["swap-after-revoke"], role: "agent", title: "Agent swaps 10 apUSD after revocation" },
@@ -248,7 +251,9 @@ export default function App() {
           <div className="pp-rows">
             <div className="pp-row">
               <div className="field"><div className="k">Holder (owner)</div><div className="v">{short(run.owner, 8)}</div></div>
-              <span className={`seal ${verified ? "ok" : "gold"}`}>{verified ? "✓ vLEI verified" : "vLEI not verified"}</span>
+              <span className={`seal ${verified ? "ok" : "gold"}`} title={verified ? "A vLEI verifier's result is on record for this mandate" : undefined}>
+                {verified ? "✓ vLEI result on record" : "vLEI not verified"}
+              </span>
             </div>
             <div className="pp-row">
               <div className="field"><div className="k">Mandate (credential)</div><div className="v">{short(run.credentialId, 10)}</div></div>
@@ -355,6 +360,7 @@ export default function App() {
           <p className="note">
             Rejected actions are real transactions too: the gate reverts them on-chain with its reason. Recorded {new Date(run.finishedAt).toLocaleString()}.
           </p>
+          {!isLocal && <RefusalDecoder />}
         </main>
       </div>
 
@@ -388,6 +394,9 @@ function Ledger({ steps, shown, run, lastLive }: { steps: StepLog[]; shown: numb
                   {main.latencyMs && <span>{main.latencyMs} ms</span>}
                   {main.detail?.relyingParty && <span>via {NAMES[main.detail.relyingParty.toLowerCase()] ?? short(main.detail.relyingParty)}</span>}
                   {main.txHash && <a href={explorerTx(main.txHash)} target="_blank" rel="noreferrer">tx {short(main.txHash)} ↗</a>}
+                  {p.live === "vlei" && !isLocal && (
+                    <a href={explorerTx(VLEI_CHECK_TX)} target="_blank" rel="noreferrer">the full off-chain check's result ↗</a>
+                  )}
                 </div>
               )}
             </div>
@@ -397,6 +406,57 @@ function Ledger({ steps, shown, run, lastLive }: { steps: StepLog[]; shown: numb
       })}
       <div style={{ display: "none" }}>{run.credentialId}</div>
     </div>
+  );
+}
+
+/** Where the storyline's stand-in vLEI record points: a full off-chain check whose result was recorded on testnet. */
+const VLEI_CHECK_TX = "0xee30f223c6355142e0a511f32e64c7b81bff145a616842a8f6bd1a97d6c4ddc6";
+
+const REFUSALS: [string, string][] = [
+  ["Over the limit", "0x73442f47375e85e7b1d5f337afb3dccf6116f61110f72bf42929ee5783dbfd35"],
+  ["Look-alike DEX (storyline)", "0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681"],
+  ["Owner not vLEI-verified", "0xc1ba95e169e239ac7184fb9f8349f35cdb4f59b06892109951f4b1ed00562dbf"],
+  ["After revocation", "0x5235022168c57d93b487c8925954c4c7320964d711fbfeda4ecacba3b0d42fa2"],
+  ["Claude Code, forced (09-29)", "0x5d369de4b2252f18cb9d504eadec245bf724439d083cdcd46dc20b07f082c122"],
+];
+
+/** Decode any refused transaction in the browser: Monad's public RPC trace, then the gate's reason code. */
+function RefusalDecoder() {
+  const [hash, setHash] = useState("");
+  const [out, setOut] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const decode = async (h: string) => {
+    setHash(h);
+    if (!/^0x[0-9a-fA-F]{64}$/.test(h.trim())) return setOut("Paste a 0x… transaction hash (66 characters).");
+    setBusy(true);
+    setOut(undefined);
+    try {
+      const reason = await revertReasonOf(client, h.trim() as Hex);
+      setOut(reason === undefined ? "This transaction succeeded — it is not a refusal." : `Reverted by the gate: ${reason}`);
+    } catch (e) {
+      setOut(`Could not read it from Monad testnet: ${(e as Error).message.split("\n")[0]}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="decoder">
+      <h3>Check a refusal yourself</h3>
+      <p className="note">
+        Paste a Monad testnet transaction hash: this page asks Monad's public RPC for its call trace and decodes the
+        gate's reason — nothing to install, no keys. Or pick one:
+      </p>
+      <div className="decoder-picks">
+        {REFUSALS.map(([label, h]) => (
+          <button key={h} className="btn ghost" disabled={busy} onClick={() => decode(h)}>{label}</button>
+        ))}
+      </div>
+      <div className="decoder-row">
+        <input value={hash} onChange={(e) => setHash(e.target.value)} placeholder="0x…" spellCheck={false} aria-label="Transaction hash" />
+        <button className="btn" disabled={busy} onClick={() => decode(hash)}>{busy ? "Reading…" : "Decode"}</button>
+      </div>
+      {out && <p className="decoder-out" role="status">{out}</p>}
+    </section>
   );
 }
 
