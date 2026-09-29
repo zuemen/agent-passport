@@ -11,7 +11,8 @@ owner-signed, selectively-disclosed mandate + on-chain enforcement and revocatio
 `NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
 **[Watch the 3-minute video](https://youtu.be/5vyENgKpGrI)** · **[Open the demo](https://zuemen.github.io/agent-passport/)** ([what to click](HACKATHON.md#for-judges-using-the-live-product-no-login-no-wallet-no-test-credentials-needed)) (the recorded run, with live reads from Monad testnet, and a
 box that decodes any refusal from its on-chain trace) ·
-[Claude Code as the agent, through MCP](#mcp-agent-on-monad-testnet).
+[Claude Code as the agent, through MCP](#mcp-agent-on-monad-testnet) ·
+[who would adopt it, and the plan](docs/ADOPTION.md).
 
 **At a glance** — Monad testnet, chain id 10143:
 - **Checked inside the payment.** Identity, mandate status, four Merkle proofs, the agent's signature and the daily
