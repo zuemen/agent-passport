@@ -38,6 +38,20 @@ interface McpRun {
   steps: McpStep[];
 }
 
+/** demo/public/runs/llm-latest.json and llm-audit-latest.json: Claude Code (headless) through the same MCP server. */
+interface LlmEvent {
+  type: "text" | "tool_call" | "tool_result";
+  text?: string;
+  name?: string;
+  input?: McpStep["args"];
+  content?: string;
+}
+interface LlmRun {
+  model: string;
+  date: string;
+  steps: { key: string; user?: string; owner_action?: string; result?: { steps: { txHash?: string }[] }; events?: LlmEvent[] }[];
+}
+
 /** The storyline, in order. `live` is the demo-API step that performs it. */
 const PLAN: { live: string; ids: string[]; role: StepLog["role"]; title: string }[] = [
   { live: "issue", ids: ["sign", "anchor"], role: "owner", title: "Owner signs the mandate and anchors it on Monad" },
@@ -129,6 +143,8 @@ export default function App() {
   const [lastLive, setLastLive] = useState<string>();
   const [bench, setBench] = useState<{ succeeded: number; blocksSpanned: number; allReceiptsMs: number }>();
   const [mcp, setMcp] = useState<McpRun>();
+  const [llm, setLlm] = useState<LlmRun[]>();
+  const [agentView, setAgentView] = useState<"claude" | "scripted">("claude");
 
   useEffect(() => {
     loadRecordedRun().then(setRun);
@@ -136,6 +152,8 @@ export default function App() {
     if (!isLocal) {
       fetch(`${import.meta.env.BASE_URL}runs/bench-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setBench, () => {});
       fetch(`${import.meta.env.BASE_URL}runs/mcp-latest.json`).then((r) => (r.ok ? r.json() : undefined)).then(setMcp, () => {});
+      Promise.all(["llm-latest", "llm-audit-latest"].map((f) => fetch(`${import.meta.env.BASE_URL}runs/${f}.json`).then((r) => (r.ok ? r.json() : undefined))))
+        .then((runs) => runs.every(Boolean) && setLlm(runs as LlmRun[]), () => {});
     }
     probeLive().then(async (ok) => {
       setLive(ok);
@@ -263,7 +281,7 @@ export default function App() {
               <div className="field"><div className="k">Agent wallet balance</div><div className="v">{liveState ? usd(liveState.agentUsd) : "…"} apUSD</div></div>
               <div className="field" style={{ textAlign: "right" }}><div className="k">Owner treasury</div><div className="v">{liveState ? usd(liveState.ownerUsd) : "…"} apUSD</div></div>
             </div>
-            <div className="note">The agent never holds tokens: PassportGate pulls each authorized amount from the owner.</div>
+            <div className="note">In this owner-funded setup the agent holds no tokens, only gas: PassportGate pulls each authorized amount from the owner.</div>
           </div>
           <div className="mrz" aria-label="machine readable zone">{mrz(run)}</div>
         </aside>
@@ -325,7 +343,15 @@ export default function App() {
                 Any MCP-capable agent can call the Agent Passport tools. It reveals four claims to the DEX and signs each action; the
                 gate checks the claims against the anchored root, the signature against the agent's ERC-8004 key, and the limits.
               </p>
-              {mcp ? (
+              {(llm || mcp) && (
+                <div className="seg" role="group" aria-label="recorded agent session">
+                  {llm && <button aria-pressed={agentView === "claude"} onClick={() => setAgentView("claude")}>Claude Code · 2026-09-29</button>}
+                  {mcp && <button aria-pressed={agentView === "scripted" || !llm} onClick={() => setAgentView("scripted")}>Scripted client · 2026-09-24</button>}
+                </div>
+              )}
+              {llm && agentView === "claude" ? (
+                <ClaudeSession runs={llm} />
+              ) : mcp ? (
                 <McpSession run={mcp} />
               ) : (
                 <pre className="mcp">
@@ -465,6 +491,48 @@ const PARTY: Record<string, string> = {
   [C.lookalikeDex.toLowerCase()]: "Look-alike DEX",
   [C.passportMerchant.toLowerCase()]: "PassportMerchant",
 };
+
+/** The two Claude Code sessions: every user message, tool call and result, and the model's replies (shortened). */
+function ClaudeSession({ runs }: { runs: LlmRun[] }) {
+  const args = (a: McpStep["args"] = {}) =>
+    [a.scope && `"${a.scope}"`, a.amount && `${usd(BigInt(a.amount))} apUSD`, a.relyingParty && `→ ${PARTY[a.relyingParty.toLowerCase()] ?? short(a.relyingParty)}`, a.forceSubmit && "forceSubmit", a.disclose && `disclose [${a.disclose.join(", ")}]`]
+      .filter(Boolean)
+      .join(", ");
+  const result = (content = "") => {
+    let r: McpStep["result"] & { availableClaims?: { disclosable: boolean }[] };
+    try { r = JSON.parse(content); } catch { return <span className="c">{content.slice(0, 100)}</span>; }
+    const tx = r.txHash && <> · <a href={explorerTx(r.txHash)} target="_blank" rel="noreferrer">tx {short(r.txHash)} ↗</a></>;
+    if (r.availableClaims) return <span className="ok">✓ presentation; text claims kept private by policy</span>;
+    if (r.authorized !== undefined) return <span className={r.authorized ? "ok" : "no"}>{r.authorized ? "✓ authorized" : `✗ ${r.reason}`}</span>;
+    if (r.executed) return <span className="ok">✓ settled on Monad{tx}</span>;
+    if (r.stoppedBy === "on-chain") return <span className="no">✗ sent, reverted by PassportGate on Monad: {r.reason}{tx}</span>;
+    return <span className="warn">■ not sent: {r.reason}</span>;
+  };
+  const say = (t = "") => t.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*`]/g, "");
+  return (
+    <pre className="mcp wrap">
+      {runs.map((run, i) => (
+        <span key={i}>
+          <span className="c">{`${i ? "\n\n" : ""}// Claude Code (${run.model}) through MCP, ${run.date.slice(0, 10)}, ${i ? "second session" : "first session"} — replies shortened here; unedited transcript: runs/${i ? "llm-audit-latest" : "llm-latest"}.json`}</span>
+          {run.steps.map((s) =>
+            s.owner_action ? (
+              <span key={s.key}>{"\n"}<span className="s">{"owner › revoke the mandate"}</span>{"  "}<span className="ok">✓ recorded on Monad{s.result?.steps.find((x) => x.txHash)?.txHash && <> · <a href={explorerTx(s.result!.steps.find((x) => x.txHash)!.txHash!)} target="_blank" rel="noreferrer">tx {short(s.result!.steps.find((x) => x.txHash)!.txHash)} ↗</a></>}</span></span>
+            ) : (
+              <span key={s.key}>
+                {"\n"}<span className="s">{`user › ${s.user}`}</span>
+                {(s.events ?? []).map((e, j) =>
+                  e.type === "tool_call" ? <span key={j}>{"\n"}{(e.name ?? "").replace("mcp__agent-passport__", "")}({args(e.input)})</span>
+                  : e.type === "tool_result" ? <span key={j}>{"\n  "}{result(e.content)}</span>
+                  : <span key={j} className="c">{"\n  claude › "}{say(e.text).length > 180 ? say(e.text).slice(0, 177) + "…" : say(e.text)}</span>,
+                )}
+              </span>
+            ),
+          )}
+        </span>
+      ))}
+    </pre>
+  );
+}
 
 /** The recorded MCP session: every tool call the agent made and what came back, with its transactions. */
 function McpSession({ run }: { run: McpRun }) {

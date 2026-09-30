@@ -157,7 +157,7 @@ button { font: inherit; color: inherit; }
 .portrait svg { width: 56px; height: 56px; }
 .fields { display: grid; gap: 9px; }
 .field .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
-.field .v { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+.field .v { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
 .field .v.big { font-family: var(--serif); font-size: 22px; line-height: 1.1; }
 .pp-rows { position: relative; padding: 4px 22px 16px; display: grid; gap: 10px; }
 .pp-row { display: flex; justify-content: space-between; gap: 12px; border-top: 0.5px dashed var(--rule); padding-top: 9px; }
@@ -316,6 +316,7 @@ button { font: inherit; color: inherit; }
   background: var(--ink); color: #dfe3ee; padding: 16px 18px; border-radius: 4px; margin-bottom: 18px;
   overflow-x: auto;
 }
+.mcp.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .mcp .c { color: #8e98b3; }
 .mcp .s { color: #f2d9a0; }
 .mcp .ok { color: #8fd6ae; }
@@ -358,6 +359,8 @@ button { font: inherit; color: inherit; }
   .check { grid-template-columns: 1fr; }
   .verdict { min-width: 0; justify-items: start; }
   .tab { flex: 1; padding: 8px 8px 7px; text-align: left; }
+  .mcp { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+  .mrz { font-size: 8.5px; letter-spacing: 0.02em; padding: 10px 14px 12px; }
   .tab b { display: block; }
   .entry { grid-template-columns: 28px 1fr auto; grid-template-areas: "n who st" ". body body"; row-gap: 6px; }
   .entry .n { grid-area: n; }
