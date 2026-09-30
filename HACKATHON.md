@@ -7,7 +7,8 @@
 | Track | 04 — Trust / Identity & AI Infrastructure |
 | Repository | https://github.com/zuemen/agent-passport — MIT license |
 | Network | Monad testnet (chain id 10143) — addresses in the [README](README.md#deployments--monad-testnet-chain-id-10143) and [`contracts/deployments/10143.json`](contracts/deployments/10143.json) |
-| Demo video | https://youtu.be/5vyENgKpGrI — under 3 minutes, AI voice-over; it cuts together runs on Monad testnet from 2026-09-23 (the storyline, shown in the published demo page; the bench; the passkey owner; the vLEI result) and 2026-09-29 (Claude Code through MCP, two sessions), each labeled on screen |
+| Pitch video | https://youtu.be/xpdvNjJKUjQ — 1:45: the team, the problem, who adopts it, the plan |
+| Demo video | https://youtu.be/75rzPJgP5L8 — 2:49, AI voice-over; it cuts together runs on Monad testnet from 2026-09-23 (the storyline, shown in the published demo page; the bench; the passkey owner; the vLEI result) and 2026-09-29 (Claude Code through MCP, two sessions), each labeled on screen |
 | Live demo | https://zuemen.github.io/agent-passport/ — the recorded run, with live read-only reads from Monad testnet (live mode needs the local API: `npm run local -w demo`) |
 | Check it yourself | [No keys, no MON](README.md#verify-it-yourself--no-keys-no-mon): one `curl` against Monad testnet, or the whole demo on a local chain under Monad's EVM rules |
 | Adoption & plan | [docs/ADOPTION.md](docs/ADOPTION.md): first target adopters (with sources), alternatives, the 30/60/90-day plan; no external integration yet |
