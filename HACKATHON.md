@@ -2,6 +2,7 @@
 
 | | |
 |---|---|
+| Team | Zuemen Chu (朱廷翊) — protocol & engineering · Wang Lei (汪蕾) — design & outreach · National Chengchi University, Taipei |
 | Program | [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) (Monad Foundation) |
 | Track | 04 — Trust / Identity & AI Infrastructure |
 | Repository | https://github.com/zuemen/agent-passport — MIT license |
