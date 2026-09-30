@@ -6,6 +6,11 @@ mandate for it, what that mandate allows, and whether it still holds. The counte
 Built for **Monad Metropolis · Track 04 — Trust / Identity & AI Infrastructure**: ERC-8004 agent identity + an
 owner-signed, selectively-disclosed mandate + on-chain enforcement and revocation, usable by any agent through MCP.
 
+**The wallet can cap the key. Only the counterparty can verify the mandate.** Wallet-side permissions (session keys,
+ERC-7715 delegations, agent wallets) limit what a key may spend; Agent Passport lets the *receiving contract* check,
+inside the payment, who signed for the agent, what they allowed and whether it still holds — seeing four claims, not the
+owner's name. The two work together ([why, and who adopts it first](docs/ADOPTION.md)).
+
 **30-second proof** — a simulated prompt-injected payment to a look-alike DEX, refused on Monad testnet:
 [`0xbb607e1c…`](https://testnet.monadscan.com/tx/0xbb607e1c8bb43a88fc90e9a32608c5756ca460987ddf9f787c5b9f18a5ca0681) →
 `NotAuthorized(PayeeNotAllowed)` ([decode it yourself with one `curl`](#verify-it-yourself--no-keys-no-mon)).
